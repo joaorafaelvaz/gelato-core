@@ -3,14 +3,12 @@ import type { INestApplication } from '@nestjs/common'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppModule } from '../src/app.module'
-import { runSeed } from '../prisma/seed'
 
 describe('auth + rbac (e2e)', () => {
   let app: INestApplication
   let server: ReturnType<INestApplication['getHttpServer']>
 
   beforeAll(async () => {
-    await runSeed()
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
     app = moduleRef.createNestApplication()
     await app.init()

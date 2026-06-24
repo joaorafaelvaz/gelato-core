@@ -85,6 +85,18 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
   })
   await linkRole(prisma, operator.id, roleId.get('operator'))
 
+  const lagerist = await prisma.user.upsert({
+    where: { email: 'lager@demo.test' },
+    update: {},
+    create: {
+      tenantId: TENANT_ID,
+      name: 'Lagerist',
+      email: 'lager@demo.test',
+      passwordHash: await hashSecret('lager123'),
+    },
+  })
+  await linkRole(prisma, lagerist.id, roleId.get('lagerist'))
+
   // Alíquotas (seed conservador — CONFIRMAR COM STEUERBERATER)
   await ensureTaxRate(prisma, 'standard_19', '0.19')
   await ensureTaxRate(prisma, 'reduced_7', '0.07')
