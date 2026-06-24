@@ -7,6 +7,7 @@ import { PermissionsGuard } from './rbac/permissions.guard'
 import { MeController } from './me/me.controller'
 import { PosModule } from './pos/pos.module'
 import { ProductsModule } from './products/products.module'
+import { OrdersModule } from './orders/orders.module'
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ProductsModule } from './products/products.module'
     AuthModule,
     PosModule,
     ProductsModule,
+    OrdersModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
