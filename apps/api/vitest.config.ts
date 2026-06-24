@@ -35,5 +35,6 @@ export default defineConfig({
     globals: false,
     hookTimeout: 30000,
     globalSetup: ['./test/global-setup.ts'],
+    server: { deps: { external: ['better-sqlite3'] } },
   },
 })

@@ -75,6 +75,9 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
+      '@gelato/pos-terminal':
+        specifier: workspace:*
+        version: link:../pos-terminal
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.23(@swc/cli@0.6.0(@swc/core@1.15.43)(chokidar@4.0.3))(@swc/core@1.15.43)(@types/node@22.20.0)(esbuild@0.27.7)(postcss@8.5.15)(prettier@3.8.4)
