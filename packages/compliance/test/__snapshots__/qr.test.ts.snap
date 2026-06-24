@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildDfkaQrPayload > matches snapshot (locks current behavior — NOT legal conformance) 1`] = `"V0;TSE-1;Kassenbeleg-V1;Beleg^0.19:476^Bar:476;1;5;2026-06-23T10:00:00.000Z;2026-06-23T10:00:01.000Z;ecdsa-plain-SHA256;utcTime;BASE64SIG;BASE64PUB"`;
