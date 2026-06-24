@@ -5,9 +5,9 @@ import { Pool } from 'pg'
 // tabelas fiscais (REVOKE), e um trigger barra UPDATE/DELETE mesmo para o owner.
 // Estes testes provam o mecanismo (DoD do Ciclo 0). Usam `pg` direto (sem Nest).
 
-const APP_URL = process.env.DATABASE_URL ?? 'postgresql://gelato_app:app_pw@127.0.0.1:5432/gelato'
+const APP_URL = process.env.DATABASE_URL ?? 'postgresql://gelato_app:app_pw@127.0.0.1:5432/gelato_c0'
 const OWNER_URL =
-  process.env.DATABASE_URL_OWNER ?? 'postgresql://gelato_owner:owner_pw@127.0.0.1:5432/gelato'
+  process.env.DATABASE_URL_OWNER ?? 'postgresql://gelato_owner:owner_pw@127.0.0.1:5432/gelato_c0'
 
 let appPool: Pool
 let ownerPool: Pool

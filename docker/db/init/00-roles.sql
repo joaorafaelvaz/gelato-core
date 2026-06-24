@@ -3,5 +3,5 @@
 -- fiscais (concedido/revogado pela migração de imutabilidade, após as tabelas
 -- existirem). Aqui só criamos o role e damos acesso de conexão/uso do schema.
 CREATE ROLE gelato_app LOGIN PASSWORD 'app_pw';
-GRANT CONNECT ON DATABASE gelato TO gelato_app;
+GRANT CONNECT ON DATABASE gelato_c0 TO gelato_app;
 GRANT USAGE ON SCHEMA public TO gelato_app;
