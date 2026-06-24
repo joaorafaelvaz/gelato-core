@@ -1,0 +1,19 @@
+{
+  "name": "@gelato/pos-terminal",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gelato/compliance": "workspace:*",
+    "@gelato/domain": "workspace:*",
+    "@gelato/sync": "workspace:*",
+    "better-sqlite3": "^11.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12"
+  }
+}
