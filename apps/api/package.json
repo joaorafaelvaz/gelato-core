@@ -11,12 +11,12 @@
     "prisma:validate": "prisma validate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx prisma/seed-run.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed-run.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
