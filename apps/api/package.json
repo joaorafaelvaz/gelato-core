@@ -4,6 +4,9 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "migrate:dev": "prisma migrate dev",
@@ -16,12 +19,30 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.1",
+    "@node-rs/argon2": "^2.0.2",
     "@prisma/client": "^6.2.1",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@swc/cli": "^0.6.0",
+    "@swc/core": "^1.10.7",
     "@types/pg": "^8.11.10",
+    "@types/supertest": "^6.0.2",
+    "dotenv": "^16.4.7",
     "prisma": "^6.2.1",
-    "tsx": "^4.19.2"
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "unplugin-swc": "^1.5.1"
   }
 }
