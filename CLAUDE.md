@@ -60,3 +60,11 @@ corepack pnpm --filter @gelato/backoffice dev              # backoffice em :5173
 corepack pnpm -r test                                      # suíte completa
 ```
 Login demo: `admin@demo.test` / `admin123`; operador PIN `1234` na `demo-kasse`.
+
+**Rodar/empacotar o terminal (GUI Electron):** `better-sqlite3` é nativo e tem ABI
+diferente para Node vs Electron (um binário por vez):
+- Testes (vitest/Node): `corepack pnpm install` compila p/ Node → testes passam.
+- GUI dev: `corepack pnpm --filter @gelato/pos-terminal exec electron-rebuild -f -w better-sqlite3`
+  (troca p/ ABI Electron) → `corepack pnpm --filter @gelato/pos-terminal dev` (precisa da API em :3000).
+- Empacotar: `corepack pnpm --filter @gelato/pos-terminal package` → `apps/pos-terminal/release/win-unpacked/`.
+- Voltar a rodar os testes do terminal: `corepack pnpm rebuild better-sqlite3` (volta p/ ABI Node).
