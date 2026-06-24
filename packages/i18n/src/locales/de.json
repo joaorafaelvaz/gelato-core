@@ -1,0 +1,37 @@
+{
+  "common": {
+    "appName": "gelato-core",
+    "save": "Speichern",
+    "cancel": "Abbrechen"
+  },
+  "auth": {
+    "login": {
+      "email": "E-Mail",
+      "password": "Passwort",
+      "pin": "PIN",
+      "submit": "Anmelden"
+    }
+  },
+  "pos": {
+    "product": {
+      "add": "Hinzufügen"
+    },
+    "mode": {
+      "label": "Verzehrart",
+      "im_haus": "Im Haus",
+      "ausser_haus": "Außer Haus"
+    },
+    "finalize": "Abschließen",
+    "receipt": {
+      "title": "Beleg",
+      "net": "Netto",
+      "vat": "MwSt",
+      "total": "Summe"
+    }
+  },
+  "backoffice": {
+    "sales": { "title": "Verkäufe" },
+    "products": { "title": "Produkte" },
+    "users": { "title": "Benutzer" }
+  }
+}

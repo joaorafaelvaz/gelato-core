@@ -1,0 +1,37 @@
+{
+  "common": {
+    "appName": "gelato-core",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "auth": {
+    "login": {
+      "email": "Email",
+      "password": "Password",
+      "pin": "PIN",
+      "submit": "Sign in"
+    }
+  },
+  "pos": {
+    "product": {
+      "add": "Add"
+    },
+    "mode": {
+      "label": "Consumption",
+      "im_haus": "Dine-in",
+      "ausser_haus": "Takeaway"
+    },
+    "finalize": "Finalize",
+    "receipt": {
+      "title": "Receipt",
+      "net": "Net",
+      "vat": "VAT",
+      "total": "Total"
+    }
+  },
+  "backoffice": {
+    "sales": { "title": "Sales" },
+    "products": { "title": "Products" },
+    "users": { "title": "Users" }
+  }
+}

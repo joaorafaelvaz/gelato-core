@@ -1,0 +1,37 @@
+{
+  "common": {
+    "appName": "gelato-core",
+    "save": "Salvar",
+    "cancel": "Cancelar"
+  },
+  "auth": {
+    "login": {
+      "email": "E-mail",
+      "password": "Senha",
+      "pin": "PIN",
+      "submit": "Entrar"
+    }
+  },
+  "pos": {
+    "product": {
+      "add": "Adicionar"
+    },
+    "mode": {
+      "label": "Consumo",
+      "im_haus": "No local",
+      "ausser_haus": "Para viagem"
+    },
+    "finalize": "Finalizar",
+    "receipt": {
+      "title": "Recibo",
+      "net": "Líquido",
+      "vat": "IVA",
+      "total": "Total"
+    }
+  },
+  "backoffice": {
+    "sales": { "title": "Vendas" },
+    "products": { "title": "Produtos" },
+    "users": { "title": "Usuários" }
+  }
+}

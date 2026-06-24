@@ -1,0 +1,310 @@
+// Schema do Ciclo 0. Migrações rodam como gelato_owner (DATABASE_URL_OWNER);
+// o runtime da API usa gelato_app (DATABASE_URL), sem UPDATE/DELETE nas tabelas
+// fiscais (ver migração de imutabilidade). Dinheiro em Int (cents).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_OWNER")
+}
+
+// ---------- Estrutura (multi-tenant) ----------
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  betriebsstaetten Betriebsstaette[]
+  users            User[]
+  roles            Role[]
+  products         Product[]
+  taxRates         TaxRate[]
+
+  @@map("tenants")
+}
+
+model Betriebsstaette {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  address     String?
+  finanzamtNr String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  kassen Kasse[]
+
+  @@map("betriebsstaetten")
+}
+
+model Kasse {
+  id                String   @id @default(cuid())
+  betriebsstaetteId String
+  name              String
+  elsterStatus      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  betriebsstaette Betriebsstaette @relation(fields: [betriebsstaetteId], references: [id])
+  tseClient       TseClient?
+  shifts          Shift[]
+  orders          Order[]
+  zReports        ZReport[]
+
+  @@map("kassen")
+}
+
+model TseClient {
+  id        String   @id @default(cuid())
+  kasseId   String   @unique
+  provider  String // 'fiskaly' | 'swissbit'
+  serialNr  String?
+  publicKey String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  kasse Kasse @relation(fields: [kasseId], references: [id])
+
+  @@map("tse_clients")
+}
+
+// ---------- Auth / RBAC ----------
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  email        String   @unique
+  passwordHash String
+  pinHash      String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id])
+  roles  UserRole[]
+
+  @@map("users")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@unique([tenantId, key])
+  @@map("roles")
+}
+
+model Permission {
+  id    String           @id @default(cuid())
+  key   String           @unique
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ---------- Catálogo ----------
+
+model TaxRate {
+  id        String    @id @default(cuid())
+  tenantId  String
+  code      String
+  rate      Decimal   @db.Decimal(5, 4)
+  validFrom DateTime
+  validTo   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, code])
+  @@map("tax_rates")
+}
+
+model Product {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  name               String
+  type               String   @default("vendavel") // vendavel | insumo | semi_acabado
+  // netCents: preço NET em cents (a decomposição de MwSt é feita pelo motor)
+  netCents           Int
+  mwstCodeImHaus     String
+  mwstCodeAusserHaus String
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("products")
+}
+
+model Shift {
+  id           String    @id @default(cuid())
+  kasseId      String
+  userId       String
+  openedAt     DateTime  @default(now())
+  closedAt     DateTime?
+  openingFloat Int       @default(0)
+  closingCount Int?
+
+  kasse  Kasse   @relation(fields: [kasseId], references: [id])
+  orders Order[]
+
+  @@map("shifts")
+}
+
+// ---------- FISCAL (append-only; sem updatedAt) ----------
+
+model Order {
+  id            String   @id @default(cuid())
+  clientEventId String   @unique // idempotência (origem terminal)
+  kasseId       String
+  shiftId       String?
+  mode          String // im_haus | ausser_haus
+  tableId       String?
+  status        String   @default("finalized")
+  totalNet      Int
+  totalMwst     Int
+  totalGross    Int
+  customerId    String?
+  ts            DateTime @default(now())
+
+  kasse          Kasse           @relation(fields: [kasseId], references: [id])
+  shift          Shift?          @relation(fields: [shiftId], references: [id])
+  items          OrderItem[]
+  payments       Payment[]
+  receipt        Receipt?
+  tseTransaction TseTransaction?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  qty       Int
+  unitNet   Int
+  mwstRate  Decimal @db.Decimal(5, 4)
+  mwstCode  String
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id      String  @id @default(cuid())
+  orderId String
+  method  String
+  amount  Int
+  ref     String?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model Receipt {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  format       String   @default("digital")
+  tseSignature Json
+  qrPayload    String
+  issuedAt     DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("receipts")
+}
+
+model TseTransaction {
+  id               String   @id @default(cuid())
+  orderId          String   @unique
+  tseClientId      String?
+  txNumber         Int
+  signatureCounter Int
+  signatureValue   String
+  logTime          DateTime
+  processType      String
+  serialNumber     String?
+  publicKey        String?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("tse_transactions")
+}
+
+model ZReport {
+  id          String   @id @default(cuid())
+  kasseId     String
+  seqNr       Int
+  businessDay DateTime
+  totals      Json
+  generatedAt DateTime @default(now())
+
+  kasse Kasse @relation(fields: [kasseId], references: [id])
+
+  @@unique([kasseId, seqNr])
+  @@map("z_reports")
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  userId   String?
+  action   String
+  entity   String
+  entityId String?
+  payload  Json?
+  ip       String?
+  device   String?
+  ts       DateTime @default(now())
+
+  @@map("audit_log")
+}
+
+model SyncEvent {
+  clientEventId String   @id
+  kasseId       String
+  type          String
+  receivedAt    DateTime @default(now())
+
+  @@map("sync_events")
+}
