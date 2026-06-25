@@ -50,6 +50,7 @@ export class LedgerService {
         data: {
           clientEventId: event.client_event_id,
           kasseId: event.kasse_id,
+          shiftId: p.order.shift_id,
           mode: p.order.mode,
           tableId: p.order.table_id,
           totalNet: p.order.total_net,

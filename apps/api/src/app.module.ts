@@ -8,6 +8,7 @@ import { MeController } from './me/me.controller'
 import { PosModule } from './pos/pos.module'
 import { ProductsModule } from './products/products.module'
 import { OrdersModule } from './orders/orders.module'
+import { ShiftsModule } from './shifts/shifts.module'
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OrdersModule } from './orders/orders.module'
     PosModule,
     ProductsModule,
     OrdersModule,
+    ShiftsModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],

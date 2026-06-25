@@ -9,6 +9,7 @@ export const OrderSchema = z.object({
   total_net: Cents,
   total_mwst: Cents,
   total_gross: Cents,
+  shift_id: z.string().optional(),
   table_id: z.string().optional(),
   customer_id: z.string().optional(),
 })
