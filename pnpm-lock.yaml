@@ -38,6 +38,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@gelato/compliance':
+        specifier: workspace:*
+        version: link:../../packages/compliance
       '@gelato/domain':
         specifier: workspace:*
         version: link:../../packages/domain

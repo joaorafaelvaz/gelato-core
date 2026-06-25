@@ -9,6 +9,7 @@ import { PosModule } from './pos/pos.module'
 import { ProductsModule } from './products/products.module'
 import { OrdersModule } from './orders/orders.module'
 import { ShiftsModule } from './shifts/shifts.module'
+import { ReportsModule } from './reports/reports.module'
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ShiftsModule } from './shifts/shifts.module'
     ProductsModule,
     OrdersModule,
     ShiftsModule,
+    ReportsModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
