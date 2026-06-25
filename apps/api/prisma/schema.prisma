@@ -179,15 +179,34 @@ model Shift {
   id           String    @id @default(cuid())
   kasseId      String
   userId       String
+  status       String    @default("open") // open | closed
   openedAt     DateTime  @default(now())
   closedAt     DateTime?
   openingFloat Int       @default(0)
   closingCount Int?
+  expectedCash Int?
+  differenz    Int?
 
-  kasse  Kasse   @relation(fields: [kasseId], references: [id])
-  orders Order[]
+  kasse         Kasse          @relation(fields: [kasseId], references: [id])
+  orders        Order[]
+  cashMovements CashMovement[]
 
   @@map("shifts")
+}
+
+// Movimentos de caixa do turno (sangria/suprimento) — append-only.
+model CashMovement {
+  id      String   @id @default(cuid())
+  shiftId String
+  type    String // sangria | suprimento
+  amount  Int // cents
+  reason  String?
+  userId  String?
+  ts      DateTime @default(now())
+
+  shift Shift @relation(fields: [shiftId], references: [id])
+
+  @@map("cash_movements")
 }
 
 // ---------- FISCAL (append-only; sem updatedAt) ----------
@@ -277,6 +296,8 @@ model ZReport {
   kasseId     String
   seqNr       Int
   businessDay DateTime
+  coveredFrom DateTime
+  coveredTo   DateTime
   totals      Json
   generatedAt DateTime @default(now())
 

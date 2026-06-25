@@ -41,6 +41,21 @@ async function insertAudit(pool: Pool): Promise<string> {
   return id
 }
 
+async function insertCashMovement(pool: Pool): Promise<string> {
+  const shiftId = `shift_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO shifts (id, "kasseId", "userId", status, "openingFloat", "openedAt")
+     VALUES ($1, 'demo-kasse', 'u', 'open', 0, now())`,
+    [shiftId],
+  )
+  const id = `cm_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO cash_movements (id, "shiftId", type, amount, ts) VALUES ($1, $2, 'sangria', 100, now())`,
+    [id, shiftId],
+  )
+  return id
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -68,5 +83,15 @@ describe('fiscal immutability (DB-enforced)', () => {
     await expect(
       ownerPool.query(`UPDATE audit_log SET action='tampered' WHERE id=$1`, [id]),
     ).rejects.toThrow()
+  })
+
+  it('cash_movements is append-only (INSERT ok, UPDATE/DELETE blocked)', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const id = await insertCashMovement(appPool)
+    expect(id).toBeTruthy()
+    await expect(
+      appPool.query(`UPDATE cash_movements SET amount=0 WHERE id=$1`, [id]),
+    ).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM cash_movements WHERE id=$1`, [id])).rejects.toThrow()
   })
 })
