@@ -25,8 +25,10 @@ export interface ReceiptModel {
   vatGroups: MwstGroup[]
   total: { net: Cents; mwst: Cents; gross: Cents }
   payment: { method: string; amount: Cents }
-  tse: TseTransactionResult
+  tse: TseTransactionResult | null
   qrPayload: string
+  /** Recibo emitido sem assinatura TSE (período de Ausfall). */
+  isAusfall: boolean
 }
 
 export interface BuildReceiptInput {
@@ -36,7 +38,7 @@ export interface BuildReceiptInput {
   lines: ReceiptLine[]
   breakdown: MwstBreakdown
   payment: { method: string; amount: Cents }
-  tse: TseTransactionResult
+  tse: TseTransactionResult | null
 }
 
 /**
@@ -44,20 +46,23 @@ export interface BuildReceiptInput {
  * meio de pagamento, dados da TSE e o payload do QR DFKA. Função pura.
  */
 export function buildReceipt(input: BuildReceiptInput): ReceiptModel {
-  const qrPayload = buildDfkaQrPayload({
-    version: 'V0',
-    kasseSerialNumber: input.tse.serialNumber,
-    processType: input.tse.processType,
-    processData: input.tse.processData,
-    transactionNumber: input.tse.txNumber,
-    signatureCounter: input.tse.signatureCounter,
-    startTime: input.tse.startTime,
-    logTime: input.tse.logTime,
-    signatureAlgorithm: input.tse.signatureAlgorithm,
-    logTimeFormat: input.tse.logTimeFormat,
-    signature: input.tse.signatureValue,
-    publicKey: input.tse.publicKey,
-  })
+  const t = input.tse
+  const qrPayload = t
+    ? buildDfkaQrPayload({
+        version: 'V0',
+        kasseSerialNumber: t.serialNumber,
+        processType: t.processType,
+        processData: t.processData,
+        transactionNumber: t.txNumber,
+        signatureCounter: t.signatureCounter,
+        startTime: t.startTime,
+        logTime: t.logTime,
+        signatureAlgorithm: t.signatureAlgorithm,
+        logTimeFormat: t.logTimeFormat,
+        signature: t.signatureValue,
+        publicKey: t.publicKey,
+      })
+    : ''
 
   return {
     seller: input.seller,
@@ -71,7 +76,8 @@ export function buildReceipt(input: BuildReceiptInput): ReceiptModel {
       gross: input.breakdown.totalGross,
     },
     payment: input.payment,
-    tse: input.tse,
+    tse: t,
     qrPayload,
+    isAusfall: t === null,
   }
 }

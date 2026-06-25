@@ -39,6 +39,6 @@ describe('buildReceipt', () => {
     expect(receipt.qrPayload.split(';')).toHaveLength(12)
     expect(receipt.qrPayload).toContain('Kassenbeleg-V1')
     expect(receipt.qrPayload).toContain('TSE-1')
-    expect(receipt.tse.txNumber).toBe(1)
+    expect(receipt.tse?.txNumber).toBe(1)
   })
 })
