@@ -22,6 +22,7 @@ export interface FinalizeOpts {
   at: Date
   rates: TaxRate[]
   kasseId: string
+  shiftId?: string
   tseClientId: string
   tse: TseProvider
   store: SaleStore
@@ -37,7 +38,7 @@ export interface FinalizeOpts {
 export async function finalizeSale(
   opts: FinalizeOpts,
 ): Promise<{ event: SaleEvent; receipt: ReceiptModel }> {
-  const { cart, mode, at, rates, kasseId, tseClientId, tse, store, seller, idGen } = opts
+  const { cart, mode, at, rates, kasseId, shiftId, tseClientId, tse, store, seller, idGen } = opts
   if (cart.length === 0) throw new Error('empty cart')
 
   const breakdown = computeMwst(
@@ -84,6 +85,7 @@ export async function finalizeSale(
     {
       order: {
         mode,
+        shift_id: shiftId,
         total_net: breakdown.totalNet,
         total_mwst: breakdown.totalMwst,
         total_gross: breakdown.totalGross,

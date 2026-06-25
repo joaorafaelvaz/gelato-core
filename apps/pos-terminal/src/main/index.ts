@@ -12,6 +12,17 @@ const tse = new FakeTseProvider({ serialNumber: 'SANDBOX' })
 let repo: LocalRepo
 let token = ''
 let rates: TaxRate[] = []
+let shiftId: string | null = null
+
+async function authedPost(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`${path} -> ${res.status}`)
+  return res.json()
+}
 
 interface ProductDto {
   id: string
@@ -77,6 +88,7 @@ function registerIpc(): void {
         at: new Date(),
         rates,
         kasseId: KASSE_ID,
+        shiftId: shiftId ?? undefined,
         tseClientId: TSE_CLIENT_ID,
         tse,
         repo,
@@ -87,6 +99,26 @@ function registerIpc(): void {
       return { ok: false, error: String(e) }
     }
   })
+
+  ipcMain.handle('shift:open', async (_e, openingFloat: number) => {
+    const s = (await authedPost('/pos/shifts/open', {
+      kasse_id: KASSE_ID,
+      opening_float: openingFloat,
+    })) as { id: string }
+    shiftId = s.id
+    return s
+  })
+  ipcMain.handle('shift:close', async (_e, counted: number) => {
+    const s = await authedPost(`/pos/shifts/${shiftId}/close`, { counted })
+    shiftId = null
+    return s
+  })
+  ipcMain.handle('shift:cashMovement', async (_e, type: string, amount: number) =>
+    authedPost(`/pos/shifts/${shiftId}/cash-movement`, { type, amount }),
+  )
+  ipcMain.handle('drawer:open', async () => authedPost('/pos/drawer/open', {}))
+  ipcMain.handle('report:x', async () => authedPost('/pos/reports/x', { kasse_id: KASSE_ID }))
+  ipcMain.handle('report:z', async () => authedPost('/pos/reports/z', { kasse_id: KASSE_ID }))
 }
 
 function createWindow(): void {
