@@ -56,6 +56,16 @@ async function insertCashMovement(pool: Pool): Promise<string> {
   return id
 }
 
+async function insertAusfall(pool: Pool): Promise<string> {
+  const id = `ausf_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO tse_ausfall_log (id, "kasseId", "eventType", at, "clientEventId", "createdAt")
+     VALUES ($1, 'demo-kasse', 'started', now(), $1, now())`,
+    [id],
+  )
+  return id
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -93,5 +103,15 @@ describe('fiscal immutability (DB-enforced)', () => {
       appPool.query(`UPDATE cash_movements SET amount=0 WHERE id=$1`, [id]),
     ).rejects.toThrow()
     await expect(appPool.query(`DELETE FROM cash_movements WHERE id=$1`, [id])).rejects.toThrow()
+  })
+
+  it('tse_ausfall_log is append-only (INSERT ok, UPDATE/DELETE blocked)', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const id = await insertAusfall(appPool)
+    expect(id).toBeTruthy()
+    await expect(
+      appPool.query(`UPDATE tse_ausfall_log SET reason='x' WHERE id=$1`, [id]),
+    ).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM tse_ausfall_log WHERE id=$1`, [id])).rejects.toThrow()
   })
 })

@@ -5,14 +5,16 @@
 --     (defense-in-depth). Correção de venda = novo registro de Storno (Ciclo 1).
 --
 -- Tabelas fiscais (append-only): orders, order_items, payments, receipts,
--- tse_transactions, audit_log, z_reports, sync_events.
+-- tse_transactions, audit_log, z_reports, sync_events, cash_movements,
+-- tse_ausfall_log.
 
 -- 1) Permissões do role de runtime ---------------------------------------------
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gelato_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gelato_app;
 
 REVOKE UPDATE, DELETE, TRUNCATE ON
-  orders, order_items, payments, receipts, tse_transactions, audit_log, z_reports, sync_events
+  orders, order_items, payments, receipts, tse_transactions, audit_log, z_reports, sync_events,
+  cash_movements, tse_ausfall_log
   FROM gelato_app;
 
 -- 2) Trigger append-only (defense-in-depth) ------------------------------------
@@ -27,7 +29,8 @@ DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'orders','order_items','payments','receipts',
-    'tse_transactions','audit_log','z_reports','sync_events'
+    'tse_transactions','audit_log','z_reports','sync_events',
+    'cash_movements','tse_ausfall_log'
   ]
   LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS %I_append_only ON %I;', t, t);

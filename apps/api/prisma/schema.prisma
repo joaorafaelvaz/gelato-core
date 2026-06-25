@@ -275,20 +275,34 @@ model Receipt {
 }
 
 model TseTransaction {
-  id               String   @id @default(cuid())
-  orderId          String   @unique
+  id               String    @id @default(cuid())
+  orderId          String    @unique
   tseClientId      String?
-  txNumber         Int
-  signatureCounter Int
-  signatureValue   String
-  logTime          DateTime
+  txNumber         Int?
+  signatureCounter Int?
+  signatureValue   String?
+  logTime          DateTime?
   processType      String
   serialNumber     String?
   publicKey        String?
+  isAusfall        Boolean   @default(false)
 
   order Order @relation(fields: [orderId], references: [id])
 
   @@map("tse_transactions")
+}
+
+model TseAusfallLog {
+  id            String   @id @default(cuid())
+  tenantId      String?
+  kasseId       String
+  eventType     String // 'started' | 'ended'
+  at            DateTime
+  reason        String?
+  clientEventId String   @unique
+  createdAt     DateTime @default(now())
+
+  @@map("tse_ausfall_log")
 }
 
 model ZReport {
