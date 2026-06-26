@@ -20,3 +20,10 @@ export async function apiGet<T>(path: string, token: string): Promise<T> {
   if (!res.ok) throw new Error(`${path} failed`)
   return res.json() as Promise<T>
 }
+
+/** GET binário (ex.: download do .zip DSFinV-K) com o Bearer token. */
+export async function apiGetBlob(path: string, token: string): Promise<Blob> {
+  const res = await fetch(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } })
+  if (!res.ok) throw new Error(`${path} failed`)
+  return res.blob()
+}
