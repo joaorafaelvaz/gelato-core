@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common'
-import { SaleEventSchema } from '@gelato/domain'
+import { PosEventSchema } from '@gelato/domain'
 import { LedgerService } from './ledger.service'
 import { JwtAuthGuard, type JwtUser } from '../auth/jwt-auth.guard'
 import { PermissionsGuard } from '../rbac/permissions.guard'
@@ -22,12 +22,12 @@ export class SyncController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermission('pos.sale.create')
   async sync(@Req() req: PosRequest, @Body() body: unknown) {
-    const event = parseOrThrow(SaleEventSchema, body)
-    const result = await this.ledger.ingest(event, {
-      userId: req.user.sub,
-      ip: req.ip,
-      device: req.headers['user-agent'],
-    })
+    const event = parseOrThrow(PosEventSchema, body)
+    const actor = { userId: req.user.sub, ip: req.ip, device: req.headers['user-agent'] }
+    const result =
+      event.type === 'tse_ausfall'
+        ? await this.ledger.ingestAusfall(event, actor)
+        : await this.ledger.ingest(event, actor)
     return { ok: true, ...result }
   }
 }

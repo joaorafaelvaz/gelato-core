@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
-import type { SaleEvent } from '@gelato/domain'
+import type { SaleEvent, AusfallEvent } from '@gelato/domain'
 
 export interface Actor {
   userId?: string
@@ -38,10 +38,13 @@ export class LedgerService {
     const p = event.payload
     const te = p.tse_transaction
     // Extrai para locais: o narrowing de propriedades não sobrevive ao closure abaixo.
+    const isAusfall = te.is_ausfall === true
     const signatureValue = te.signature_value
     const signatureCounter = te.signature_counter
     const logTime = te.log_time
-    if (!signatureValue || signatureCounter == null || !logTime) {
+    // Em Ausfall (TSE indisponível) a venda é gravada SEM assinatura (KassenSichV).
+    // Fora de Ausfall, a assinatura é obrigatória.
+    if (!isAusfall && (!signatureValue || signatureCounter == null || !logTime)) {
       throw new BadRequestException('incomplete TSE transaction data')
     }
 
@@ -78,13 +81,14 @@ export class LedgerService {
           },
           tseTransaction: {
             create: {
-              txNumber: te.tx_number,
-              signatureCounter,
-              signatureValue,
-              logTime: new Date(logTime),
+              txNumber: te.tx_number ?? null,
+              signatureCounter: signatureCounter ?? null,
+              signatureValue: signatureValue ?? null,
+              logTime: logTime ? new Date(logTime) : null,
               processType: te.process_type ?? 'Kassenbeleg-V1',
               serialNumber: te.serial_number,
               publicKey: te.public_key,
+              isAusfall,
             },
           },
         },
@@ -107,6 +111,45 @@ export class LedgerService {
       })
 
       return { duplicate: false, orderId: order.id }
+    })
+  }
+
+  /**
+   * Persiste um evento de período de Ausfall (início/fim) no log fiscal
+   * append-only, de forma ATÔMICA e IDEMPOTENTE. Não há venda associada — só o
+   * registro do período + audit. Reusa client_event_id como chave de idempotência.
+   */
+  async ingestAusfall(event: AusfallEvent, actor: Actor): Promise<{ duplicate: boolean }> {
+    const seen = await this.prisma.syncEvent.findUnique({
+      where: { clientEventId: event.client_event_id },
+    })
+    if (seen) return { duplicate: true }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.tseAusfallLog.create({
+        data: {
+          kasseId: event.kasse_id,
+          eventType: event.payload.event_type,
+          at: new Date(event.payload.at),
+          reason: event.payload.reason,
+          clientEventId: event.client_event_id,
+        },
+      })
+      await tx.syncEvent.create({
+        data: { clientEventId: event.client_event_id, kasseId: event.kasse_id, type: event.type },
+      })
+      await tx.auditLog.create({
+        data: {
+          userId: actor.userId,
+          action: `tse.ausfall.${event.payload.event_type}`,
+          entity: 'tse_ausfall_log',
+          entityId: event.client_event_id,
+          payload: { reason: event.payload.reason ?? null },
+          ip: actor.ip,
+          device: actor.device,
+        },
+      })
+      return { duplicate: false }
     })
   }
 }
