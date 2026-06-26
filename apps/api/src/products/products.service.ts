@@ -17,6 +17,10 @@ export class ProductsService {
     return this.prisma.product.findMany({
       where: { tenantId, active: true },
       orderBy: { name: 'asc' },
+      include: {
+        variants: { where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, name: true, netCents: true } },
+        modifiers: { where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, name: true, netCents: true } },
+      },
     })
   }
 

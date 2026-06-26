@@ -1,4 +1,5 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
+import type { Prisma } from '@prisma/client'
 import { aggregateTab, apportionSplit, paidByRate, type TabItemInput } from '@gelato/compliance'
 import type { BestellungEvent, SaleEvent } from '@gelato/domain'
 import { PrismaService } from '../prisma/prisma.service'
@@ -97,10 +98,12 @@ export class TablesService {
           items: {
             create: event.items.map((i) => ({
               productId: i.product_id,
+              variantId: i.variant_id,
               qty: i.qty,
               unitNet: i.unit_net,
               mwstRate: i.mwst_rate,
               mwstCode: i.mwst_code,
+              modifiers: i.modifiers as Prisma.InputJsonValue | undefined,
               stornoOf: i.storno_of,
             })),
           },

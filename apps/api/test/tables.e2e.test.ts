@@ -9,7 +9,7 @@ import { AppModule } from '../src/app.module'
 const tse = new FakeTseProvider({ serialNumber: 'SER-T' })
 
 /** Monta um BestellungEvent assinado (Bestellung-V1) — o terminal faria isso. */
-async function signedBestellung(sessionId: string, items: { product_id: string; qty: number; unit_net: number; mwst_rate: number; mwst_code: string; storno_of?: string }[]) {
+async function signedBestellung(sessionId: string, items: { product_id: string; variant_id?: string; qty: number; unit_net: number; mwst_rate: number; mwst_code: string; modifiers?: { id: string; name: string; net: number }[]; storno_of?: string }[]) {
   const gross = items.reduce((s, i) => s + Math.round(i.unit_net * i.qty * (1 + i.mwst_rate)), 0)
   const r = await tse.sign({ clientId: 'c1', processType: 'Bestellung-V1', amountsByVatRate: [], paymentType: 'Bar', grossTotal: gross })
   return {
@@ -158,6 +158,23 @@ describe('Tables / conta aberta (e2e)', () => {
       tse: { tx_number: r.txNumber, signature_counter: r.signatureCounter, signature_value: r.signatureValue, log_time: r.logTime, process_type: r.processType, serial_number: r.serialNumber, public_key: r.publicKey },
     })
     expect(res.status).toBe(400)
+  })
+
+  it('records a bestellung line with variant + modifiers (combined unitNet)', async () => {
+    const products = (await (await get(`/products`)).json()) as { id: string; variants?: { id: string; netCents: number }[]; modifiers?: { id: string; netCents: number }[] }[]
+    const becher = products.find((p) => p.id === 'prod-eisbecher')!
+    expect(becher.variants?.length).toBe(3)
+    expect(becher.modifiers?.length).toBe(1)
+    const tisch = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    await prisma.tisch.create({ data: { id: tisch, betriebsstaetteId: 'demo-bs', name: 'var' } })
+    const sessionId = ((await (await post(`/pos/tables/${tisch}/open`, { kasse_id: 'demo-kasse' })).json()) as { id: string }).id
+    // Eisbecher L (600) + extra Sahne (50) = 650
+    await post(`/pos/sessions/${sessionId}/bestellung`, await signedBestellung(sessionId, [
+      { product_id: 'prod-eisbecher', variant_id: 'var-l', qty: 1, unit_net: 650, mwst_rate: 0.19, mwst_code: 'standard_19', modifiers: [{ id: 'mod-sahne', name: 'extra Sahne', net: 50 }] },
+    ]))
+    const item = await prisma.bestellungItem.findFirst({ where: { variantId: 'var-l' }, orderBy: { id: 'desc' } })
+    expect(item?.unitNet).toBe(650)
+    expect(item?.modifiers).toBeTruthy()
   })
 
   it('transfers a whole tab to another free table (409 if target occupied)', async () => {

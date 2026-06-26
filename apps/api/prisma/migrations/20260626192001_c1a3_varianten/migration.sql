@@ -55,3 +55,6 @@ ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_productId_fkey" 
 -- AddForeignKey
 ALTER TABLE "product_modifiers" ADD CONSTRAINT "product_modifiers_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+
+-- ===== Master data (mutável): DML p/ o role de runtime gelato_app =====
+GRANT SELECT, INSERT, UPDATE, DELETE ON product_categories, product_variants, product_modifiers TO gelato_app;

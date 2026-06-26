@@ -64,10 +64,12 @@ export class LedgerService {
           items: {
             create: p.items.map((i) => ({
               productId: i.product_id,
+              variantId: i.variant_id,
               qty: i.qty,
               unitNet: i.unit_net,
               mwstRate: i.mwst_rate,
               mwstCode: i.mwst_code,
+              modifiers: i.modifiers as Prisma.InputJsonValue | undefined,
             })),
           },
           payments: {
