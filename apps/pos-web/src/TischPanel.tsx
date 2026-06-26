@@ -10,7 +10,6 @@ import {
   type TableRow,
   type SessionView,
   type ApiProduct,
-  type ApiVariant,
 } from './api'
 
 const euro = (c: number): string =>
@@ -38,8 +37,9 @@ function tseFields(r: {
 }
 
 /**
- * Fluxo mínimo de salão (1a-1): lista mesas, abre/continua conta, lança Bestellung
- * (assinada Bestellung-V1) e fecha com Kassenbeleg-V1. UI rica de Tischplan = 1a-4.
+ * Salão (mesas): lista/abre mesas, compõe a linha (produto → variante + modifiers via
+ * controles reais), lança Bestellung-V1, e fecha com Kassenbeleg-V1 (total, split por
+ * partes, ou transferência). Tischplan visual rico = 1a-4.
  */
 export function TischPanel({
   token,
@@ -57,6 +57,13 @@ export function TischPanel({
   const [tables, setTables] = useState<TableRow[]>([])
   const [session, setSession] = useState<SessionView | null>(null)
   const [msg, setMsg] = useState('')
+  // Composição da linha
+  const [sel, setSel] = useState<ApiProduct | null>(null)
+  const [variantId, setVariantId] = useState('')
+  const [mods, setMods] = useState<Record<string, boolean>>({})
+  // Pagamento/transferência
+  const [parts, setParts] = useState('2')
+  const [transferTo, setTransferTo] = useState('')
 
   const refresh = (): void => {
     void listTables(token, kasse).then(setTables).catch(() => setTables([]))
@@ -66,28 +73,31 @@ export function TischPanel({
   async function open(t: TableRow): Promise<void> {
     const id = t.openSessionId ?? (await openTable(token, t.id, kasse)).id
     setSession(await getSession(token, id))
+    setSel(null)
     refresh()
   }
 
-  async function fire(p: ApiProduct): Promise<void> {
-    if (!session) return
-    // Variante (se houver) + modifiers (seleção simples por nome).
-    let variant: ApiVariant | undefined
-    if (p.variants && p.variants.length > 0) {
-      const choice = window.prompt(`Variante (${p.variants.map((v) => v.name).join('/')}):`, p.variants[0]!.name)
-      variant = p.variants.find((v) => v.name === choice) ?? p.variants[0]
-    }
-    let chosen: ApiVariant[] = []
-    if (p.modifiers && p.modifiers.length > 0) {
-      const sel = window.prompt(`Modifiers (vírgula): ${p.modifiers.map((m) => m.name).join(', ')}`, '')
-      const names = (sel ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-      chosen = p.modifiers.filter((m) => names.includes(m.name))
-    }
+  function selectProduct(p: ApiProduct): void {
+    setSel(p)
+    setVariantId(p.variants?.[0]?.id ?? '')
+    setMods({})
+  }
+
+  /** Linha composta a partir da seleção atual (variante + modifiers marcados). */
+  function composeLine(p: ApiProduct) {
+    const variant = p.variants?.find((v) => v.id === variantId)
+    const chosen = (p.modifiers ?? []).filter((m) => mods[m.id])
     const line = buildSaleLine(
       { baseNetCents: p.netCents, mwstCode: p.mwstCodeImHaus },
       variant ? { netCents: variant.netCents } : undefined,
       chosen.map((m) => ({ id: m.id, name: m.name, net: m.netCents })),
     )
+    return { line, variant }
+  }
+
+  async function addLine(): Promise<void> {
+    if (!session || !sel) return
+    const { line, variant } = composeLine(sel)
     const rate = rates.find((r) => r.code === line.mwstCode)?.rate ?? 0
     const gross = line.unitNet + Math.round(line.unitNet * rate)
     const outcome = await signWithFallback(tse, {
@@ -104,10 +114,11 @@ export function TischPanel({
       session_id: session.id,
       kasse_id: kasse,
       items: [
-        { product_id: p.id, variant_id: variant?.id, qty: 1, unit_net: line.unitNet, mwst_rate: rate, mwst_code: line.mwstCode, modifiers: line.modifiers },
+        { product_id: sel.id, variant_id: variant?.id, qty: 1, unit_net: line.unitNet, mwst_rate: rate, mwst_code: line.mwstCode, modifiers: line.modifiers },
       ],
       tse_transaction,
     })
+    setSel(null)
     setSession(await getSession(token, session.id))
   }
 
@@ -142,14 +153,20 @@ export function TischPanel({
     }
   }
 
-  async function transfer(): Promise<void> {
-    if (!session) return
-    const target = window.prompt('Transferir para a mesa (id):')
-    if (!target) return
-    await transferTable(token, session.id, target)
+  function splitPay(): void {
+    const n = Math.max(1, Math.floor(Number(parts) || 1))
+    void payAmount(Math.ceil(remainingGross() / n))
+  }
+
+  async function doTransfer(): Promise<void> {
+    if (!session || !transferTo) return
+    await transferTable(token, session.id, transferTo)
+    setTransferTo('')
     setSession(await getSession(token, session.id))
     refresh()
   }
+
+  const freeTables = tables.filter((t) => !t.openSessionId && t.id !== session?.tischId)
 
   return (
     <section style={{ marginTop: 16, borderTop: '1px solid #ddd', paddingTop: 8 }}>
@@ -162,26 +179,97 @@ export function TischPanel({
           </button>
         ))}
       </div>
+
       {session && (
         <div style={{ marginTop: 8 }}>
           <p style={{ fontWeight: 600 }}>
             Conta {session.tischId} — {euro(session.tab.totalGross)}
+            {session.remaining && session.remaining.totalGross !== session.tab.totalGross
+              ? ` (resta ${euro(session.remaining.totalGross)})`
+              : ''}
           </p>
+
+          {/* Seleção de produto */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
             {products.map((p) => (
-              <button key={p.id} onClick={() => void fire(p)}>
-                + {p.name}
+              <button
+                key={p.id}
+                onClick={() => selectProduct(p)}
+                style={{ padding: 8, fontWeight: sel?.id === p.id ? 700 : 400 }}
+              >
+                {p.name}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+
+          {/* Composer: variante + modifiers do produto selecionado */}
+          {sel && (
+            <div style={{ marginTop: 8, padding: 8, background: '#f4f4f5', borderRadius: 6 }}>
+              <strong>{sel.name}</strong>
+              {sel.variants && sel.variants.length > 0 && (
+                <label style={{ marginLeft: 8 }}>
+                  Variante{' '}
+                  <select value={variantId} onChange={(e) => setVariantId(e.target.value)}>
+                    {sel.variants.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} — {euro(v.netCents)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {sel.modifiers && sel.modifiers.length > 0 && (
+                <div style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  {sel.modifiers.map((m) => (
+                    <label key={m.id}>
+                      <input
+                        type="checkbox"
+                        checked={!!mods[m.id]}
+                        onChange={(e) => setMods((prev) => ({ ...prev, [m.id]: e.target.checked }))}
+                      />{' '}
+                      {m.name} (+{euro(m.netCents)})
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Linha: {euro(composeLine(sel).line.unitNet)} (net)</span>
+                <button onClick={() => void addLine()}>Adicionar</button>
+                <button onClick={() => setSel(null)}>Cancelar</button>
+              </div>
+            </div>
+          )}
+
+          {/* Pagamento / split / transferência */}
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => void payAmount()} style={{ flex: 1, padding: 8 }}>
               Pagar tudo
             </button>
-            <button onClick={() => void payAmount(Math.ceil(remainingGross() / 2))} style={{ padding: 8 }}>
-              Split ÷2
+            <label>
+              Split em{' '}
+              <input
+                type="number"
+                min={1}
+                value={parts}
+                onChange={(e) => setParts(e.target.value)}
+                style={{ width: 48 }}
+              />
+            </label>
+            <button onClick={splitPay} style={{ padding: 8 }}>
+              Pagar 1 parte
             </button>
-            <button onClick={() => void transfer()} style={{ padding: 8 }}>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
+            <select value={transferTo} onChange={(e) => setTransferTo(e.target.value)}>
+              <option value="">— mesa destino —</option>
+              {freeTables.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <button onClick={() => void doTransfer()} disabled={!transferTo}>
               Transferir
             </button>
           </div>
