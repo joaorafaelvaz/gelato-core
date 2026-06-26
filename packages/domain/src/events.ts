@@ -15,6 +15,9 @@ export const OrderSchema = z.object({
   customer_id: z.string().optional(),
 })
 
+/** Snapshot de um modificador aplicado (capturado no momento da venda). */
+export const LineModifierSchema = z.object({ id: z.string(), name: z.string(), net: Cents })
+
 export const OrderItemSchema = z.object({
   product_id: z.string(),
   variant_id: z.string().optional(),
@@ -22,6 +25,7 @@ export const OrderItemSchema = z.object({
   unit_net: Cents,
   mwst_rate: z.number(),
   mwst_code: z.string(),
+  modifiers: z.array(LineModifierSchema).optional(),
 })
 
 /** Ciclo 0: apenas dinheiro. Cartão/voucher entram no Ciclo 1. */
@@ -91,10 +95,12 @@ export const PosEventSchema = z.discriminatedUnion('type', [SaleEventSchema, Aus
 /** Item de Bestellung: qty pode ser negativa (Storno referenciando a original). */
 export const BestellungItemSchema = z.object({
   product_id: z.string(),
+  variant_id: z.string().optional(),
   qty: z.number().int(),
   unit_net: Cents,
   mwst_rate: z.number(),
   mwst_code: z.string(),
+  modifiers: z.array(LineModifierSchema).optional(),
   storno_of: z.string().optional(),
 })
 
@@ -108,6 +114,7 @@ export const BestellungEventSchema = z.object({
   tse_transaction: TseTransactionSchema,
 })
 
+export type LineModifier = z.infer<typeof LineModifierSchema>
 export type BestellungItem = z.infer<typeof BestellungItemSchema>
 export type BestellungEvent = z.infer<typeof BestellungEventSchema>
 export type AusfallEvent = z.infer<typeof AusfallEventSchema>
