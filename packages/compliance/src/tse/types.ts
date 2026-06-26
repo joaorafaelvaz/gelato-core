@@ -1,5 +1,5 @@
-/** Tipo de processo TSE para um recibo de venda (KassenSichV). */
-export type TseProcessType = 'Kassenbeleg-V1'
+/** Tipos de processo TSE (KassenSichV): recibo de venda e pedido (Gastronomie). */
+export type TseProcessType = 'Kassenbeleg-V1' | 'Bestellung-V1'
 
 /** Meio de pagamento no nível da TSE: Bar (dinheiro) ou Unbar (não-dinheiro). */
 export type TsePaymentType = 'Bar' | 'Unbar'

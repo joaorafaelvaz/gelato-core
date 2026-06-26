@@ -87,6 +87,28 @@ export const AusfallEventSchema = z.object({
 /** União dos eventos que o terminal sincroniza para o central via POST /pos/sync. */
 export const PosEventSchema = z.discriminatedUnion('type', [SaleEventSchema, AusfallEventSchema])
 
+/** Item de Bestellung: qty pode ser negativa (Storno referenciando a original). */
+export const BestellungItemSchema = z.object({
+  product_id: z.string(),
+  qty: z.number().int(),
+  unit_net: Cents,
+  mwst_rate: z.number(),
+  mwst_code: z.string(),
+  storno_of: z.string().optional(),
+})
+
+/** Evento de Bestellung (envio de itens à conta). Assinado na TSE (Bestellung-V1). */
+export const BestellungEventSchema = z.object({
+  client_event_id: z.string().uuid(),
+  type: z.literal('bestellung'),
+  session_id: z.string(),
+  kasse_id: z.string(),
+  items: z.array(BestellungItemSchema).min(1),
+  tse_transaction: TseTransactionSchema,
+})
+
+export type BestellungItem = z.infer<typeof BestellungItemSchema>
+export type BestellungEvent = z.infer<typeof BestellungEventSchema>
 export type AusfallEvent = z.infer<typeof AusfallEventSchema>
 export type PosEvent = z.infer<typeof PosEventSchema>
 export type Order = z.infer<typeof OrderSchema>
