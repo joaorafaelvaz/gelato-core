@@ -118,4 +118,60 @@ describe('Tables / conta aberta (e2e)', () => {
     expect(((await pay2.json()) as { duplicate: boolean }).duplicate).toBe(true)
     expect(await prisma.order.count({ where: { clientEventId } })).toBe(1)
   })
+
+  it('splits a tab into 3 partial payments until settled (Σ = total, paid only at the end)', async () => {
+    const tisch = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    await prisma.tisch.create({ data: { id: tisch, betriebsstaetteId: 'demo-bs', name: 'split' } })
+    const sessionId = ((await (await post(`/pos/tables/${tisch}/open`, { kasse_id: 'demo-kasse' })).json()) as { id: string }).id
+    await post(`/pos/sessions/${sessionId}/bestellung`, await signedBestellung(sessionId, [
+      { product_id: 'p1', qty: 1, unit_net: 100, mwst_rate: 0.19, mwst_code: 'standard_19' },
+      { product_id: 'p2', qty: 1, unit_net: 200, mwst_rate: 0.07, mwst_code: 'reduced_7' },
+    ]))
+    for (let i = 0; i < 3; i++) {
+      const remaining = ((await (await get(`/pos/sessions/${sessionId}`)).json()) as { remaining: { totalGross: number } }).remaining.totalGross
+      const amount = i < 2 ? Math.ceil(remaining / (3 - i)) : remaining
+      const r = await tse.sign({ clientId: 'c1', processType: 'Kassenbeleg-V1', amountsByVatRate: [], paymentType: 'Bar', grossTotal: amount })
+      const res = await post(`/pos/sessions/${sessionId}/pay`, {
+        client_event_id: crypto.randomUUID(), amount, payment: { method: 'cash', amount },
+        tse: { tx_number: r.txNumber, signature_counter: r.signatureCounter, signature_value: r.signatureValue, log_time: r.logTime, process_type: r.processType, serial_number: r.serialNumber, public_key: r.publicKey },
+      })
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as { settled: boolean }
+      expect(body.settled).toBe(i === 2)
+    }
+    const orders = await prisma.order.findMany({ where: { tischSessionId: sessionId } })
+    expect(orders.reduce((s, o) => s + o.totalGross, 0)).toBe(333)
+    const sess = await prisma.tischsession.findUnique({ where: { id: sessionId } })
+    expect(sess?.status).toBe('paid')
+  })
+
+  it('rejects an overpay (amount > remaining) with 400', async () => {
+    const tisch = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    await prisma.tisch.create({ data: { id: tisch, betriebsstaetteId: 'demo-bs', name: 'over' } })
+    const sessionId = ((await (await post(`/pos/tables/${tisch}/open`, { kasse_id: 'demo-kasse' })).json()) as { id: string }).id
+    await post(`/pos/sessions/${sessionId}/bestellung`, await signedBestellung(sessionId, [
+      { product_id: 'p1', qty: 1, unit_net: 100, mwst_rate: 0.19, mwst_code: 'standard_19' },
+    ]))
+    const r = await tse.sign({ clientId: 'c1', processType: 'Kassenbeleg-V1', amountsByVatRate: [], paymentType: 'Bar', grossTotal: 9999 })
+    const res = await post(`/pos/sessions/${sessionId}/pay`, {
+      client_event_id: crypto.randomUUID(), amount: 9999, payment: { method: 'cash', amount: 9999 },
+      tse: { tx_number: r.txNumber, signature_counter: r.signatureCounter, signature_value: r.signatureValue, log_time: r.logTime, process_type: r.processType, serial_number: r.serialNumber, public_key: r.publicKey },
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('transfers a whole tab to another free table (409 if target occupied)', async () => {
+    const a = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    const b = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    await prisma.tisch.create({ data: { id: a, betriebsstaetteId: 'demo-bs', name: 'A' } })
+    await prisma.tisch.create({ data: { id: b, betriebsstaetteId: 'demo-bs', name: 'B' } })
+    const sessionId = ((await (await post(`/pos/tables/${a}/open`, { kasse_id: 'demo-kasse' })).json()) as { id: string }).id
+    expect((await post(`/pos/sessions/${sessionId}/transfer`, { target_tisch_id: b })).status).toBe(200)
+    const moved = (await (await get(`/pos/sessions/${sessionId}`)).json()) as { tischId: string }
+    expect(moved.tischId).toBe(b)
+    const c = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    await prisma.tisch.create({ data: { id: c, betriebsstaetteId: 'demo-bs', name: 'C' } })
+    const s2 = ((await (await post(`/pos/tables/${c}/open`, { kasse_id: 'demo-kasse' })).json()) as { id: string }).id
+    expect((await post(`/pos/sessions/${s2}/transfer`, { target_tisch_id: b })).status).toBe(409)
+  })
 })

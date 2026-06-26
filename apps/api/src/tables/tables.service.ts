@@ -1,5 +1,5 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
-import { aggregateTab, type TabItemInput } from '@gelato/compliance'
+import { aggregateTab, apportionSplit, paidByRate, type TabItemInput } from '@gelato/compliance'
 import type { BestellungEvent, SaleEvent } from '@gelato/domain'
 import { PrismaService } from '../prisma/prisma.service'
 import { LedgerService, type Actor } from '../pos/ledger.service'
@@ -33,11 +33,11 @@ export class TablesService {
     return this.prisma.tischsession.create({ data: { tischId, kasseId, status: 'open', openedBy: userId } })
   }
 
-  /** Conta corrente da sessão (derivada das Bestellungen via aggregateTab). */
+  /** Conta corrente da sessão (derivada das Bestellungen) + remanescente (− já pago). */
   async getSession(id: string) {
     const session = await this.prisma.tischsession.findUnique({
       where: { id },
-      include: { bestellungen: { include: { items: true } } },
+      include: { bestellungen: { include: { items: true } }, orders: { include: { items: true } } },
     })
     if (!session) throw new NotFoundException('session')
     const items: TabItemInput[] = session.bestellungen.flatMap((b) =>
@@ -49,7 +49,19 @@ export class TablesService {
         mwstCode: i.mwstCode,
       })),
     )
-    return { id: session.id, tischId: session.tischId, status: session.status, orderId: session.orderId, tab: aggregateTab(items) }
+    const tab = aggregateTab(items)
+    const paid = paidByRate(
+      session.orders.map((o) => ({ items: o.items.map((i) => ({ unitNet: i.unitNet, qty: i.qty, mwstRate: Number(i.mwstRate) })) })),
+    )
+    const paidGross = paid.reduce((s, p) => s + p.gross, 0)
+    return {
+      id: session.id,
+      tischId: session.tischId,
+      status: session.status,
+      orderId: session.orderId,
+      tab,
+      remaining: { totalGross: Math.max(0, tab.totalGross - paidGross) },
+    }
   }
 
   /** Lança uma Bestellung (append-only) + sua transação TSE. Idempotente. */
@@ -119,46 +131,80 @@ export class TablesService {
    */
   async pay(
     sessionId: string,
-    body: { client_event_id: string; payment: { method: 'cash'; amount: number; ref?: string }; tse: Record<string, unknown> },
+    body: { client_event_id: string; amount?: number; payment: { method: 'cash'; amount: number; ref?: string }; tse: Record<string, unknown> },
     actor: Actor,
-  ): Promise<{ orderId: string; duplicate: boolean }> {
+  ): Promise<{ orderId: string; settled: boolean; remainingGross: number; duplicate: boolean }> {
     const session = await this.prisma.tischsession.findUnique({
       where: { id: sessionId },
-      include: { bestellungen: { include: { items: true } } },
+      include: { bestellungen: { include: { items: true } }, orders: { include: { items: true } } },
     })
     if (!session) throw new NotFoundException('session')
-    if (session.status === 'paid') {
-      // Retry idempotente do mesmo pagamento → devolve o pedido existente.
-      const existing = await this.prisma.order.findUnique({ where: { clientEventId: body.client_event_id } })
-      if (existing) return { orderId: existing.id, duplicate: true }
-      throw new ConflictException('session already paid')
-    }
-    if (session.status !== 'open') throw new ConflictException('session not open')
+
+    // Idempotência: pagamento já gravado → devolve-o.
+    const existing = await this.prisma.order.findUnique({ where: { clientEventId: body.client_event_id } })
+    if (existing) return { orderId: existing.id, settled: session.status === 'paid', remainingGross: 0, duplicate: true }
 
     const items: TabItemInput[] = session.bestellungen.flatMap((b) =>
       b.items.map((i) => ({ productId: i.productId, qty: i.qty, unitNet: i.unitNet, mwstRate: Number(i.mwstRate), mwstCode: i.mwstCode })),
     )
-    const tab = aggregateTab(items)
-    const lines = tab.lines.filter((l) => l.qty !== 0)
-    if (lines.length === 0) throw new BadRequestException('empty tab')
+    const fullTab = aggregateTab(items)
+    const paid = paidByRate(
+      session.orders.map((o) => ({ items: o.items.map((i) => ({ unitNet: i.unitNet, qty: i.qty, mwstRate: Number(i.mwstRate) })) })),
+    )
+    const paidGross = paid.reduce((s, p) => s + p.gross, 0)
+    const remainingGross = fullTab.totalGross - paidGross
+    if (remainingGross <= 0) throw new ConflictException('session already settled')
+
+    const amount = body.amount ?? remainingGross
+    if (amount <= 0 || amount > remainingGross) throw new BadRequestException('invalid amount')
+
+    let eventItems: { product_id: string; qty: number; unit_net: number; mwst_rate: number; mwst_code: string }[]
+    let totals: { net: number; mwst: number; gross: number }
+    if (amount === remainingGross && session.orders.length === 0) {
+      // Pagamento integral sem parciais anteriores → Beleg itemizado real (1a-1).
+      const lines = fullTab.lines.filter((l) => l.qty !== 0)
+      eventItems = lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: Math.round(l.net / l.qty), mwst_rate: l.mwstRate, mwst_code: l.mwstCode }))
+      totals = { net: fullTab.totalNet, mwst: fullTab.totalMwst, gross: fullTab.totalGross }
+    } else {
+      const split = apportionSplit(fullTab, paid.map((p) => ({ rate: p.rate, net: p.net })), amount)
+      eventItems = split.lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: l.unitNet, mwst_rate: l.mwstRate, mwst_code: l.mwstCode }))
+      totals = { net: split.totalNet, mwst: split.totalMwst, gross: split.totalGross }
+    }
 
     const saleEvent: SaleEvent = {
       client_event_id: body.client_event_id,
       type: 'sale',
       kasse_id: session.kasseId,
       payload: {
-        order: { mode: 'im_haus', table_id: session.tischId, total_net: tab.totalNet, total_mwst: tab.totalMwst, total_gross: tab.totalGross },
-        items: lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: Math.round(l.net / l.qty), mwst_rate: l.mwstRate, mwst_code: l.mwstCode })),
-        payment: body.payment,
+        order: { mode: 'im_haus', table_id: session.tischId, tisch_session_id: session.id, total_net: totals.net, total_mwst: totals.mwst, total_gross: totals.gross },
+        items: eventItems,
+        payment: { method: 'cash', amount: totals.gross },
         receipt: { qr_payload: '', format: 'digital' },
         tse_transaction: body.tse as SaleEvent['payload']['tse_transaction'],
       },
     }
     const result = await this.ledger.ingest(saleEvent, actor)
-    await this.prisma.tischsession.update({
-      where: { id: sessionId },
-      data: { status: 'paid', closedAt: new Date(), orderId: result.orderId },
+    const newRemaining = remainingGross - totals.gross
+    if (newRemaining <= 0) {
+      await this.prisma.tischsession.update({
+        where: { id: sessionId },
+        data: { status: 'paid', closedAt: new Date(), orderId: result.orderId },
+      })
+    }
+    return { orderId: result.orderId, settled: newRemaining <= 0, remainingGross: Math.max(0, newRemaining), duplicate: result.duplicate }
+  }
+
+  /** Transfere a conta inteira para outra mesa (operacional). Guarda: destino livre. */
+  async transfer(sessionId: string, targetTischId: string, userId?: string) {
+    const session = await this.prisma.tischsession.findUnique({ where: { id: sessionId } })
+    if (!session) throw new NotFoundException('session')
+    if (session.status !== 'open') throw new ConflictException('session not open')
+    const occupied = await this.prisma.tischsession.findFirst({ where: { tischId: targetTischId, status: 'open' } })
+    if (occupied) throw new ConflictException('target table occupied')
+    await this.prisma.tischsession.update({ where: { id: sessionId }, data: { tischId: targetTischId } })
+    await this.prisma.auditLog.create({
+      data: { userId, action: 'pos.table.transfer', entity: 'tischsession', entityId: sessionId, payload: { from: session.tischId, to: targetTischId } },
     })
-    return { orderId: result.orderId, duplicate: result.duplicate }
+    return { id: sessionId, tischId: targetTischId }
   }
 }

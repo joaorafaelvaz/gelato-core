@@ -49,10 +49,19 @@ export class TablesController {
     const dto = parseOrThrow(PayDto, body)
     return this.tables.pay(id, dto, { userId: req.user.sub, ip: req.ip, device: req.headers['user-agent'] })
   }
+
+  @Post('sessions/:id/transfer')
+  @HttpCode(200)
+  @RequirePermission('pos.table.open')
+  async transfer(@Req() req: { user: JwtUser }, @Param('id') id: string, @Body() body: { target_tisch_id?: string }) {
+    if (!body?.target_tisch_id) throw new BadRequestException('target_tisch_id required')
+    return this.tables.transfer(id, body.target_tisch_id, req.user.sub)
+  }
 }
 
 const PayDto = z.object({
   client_event_id: z.string().uuid(),
+  amount: z.number().int().positive().optional(),
   payment: z.object({ method: z.literal('cash'), amount: z.number().int(), ref: z.string().optional() }),
   tse: z.record(z.unknown()),
 })
