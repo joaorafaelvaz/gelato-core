@@ -4,6 +4,7 @@ import QRCode from 'qrcode'
 import { FakeTseProvider, AusfallTracker, type TaxRate } from '@gelato/compliance'
 import { SUPPORTED_LOCALES } from '@gelato/i18n'
 import { IdbStore } from './idb-store'
+import { TischPanel } from './TischPanel'
 import { finalizeSale, runOutboxOnce, HttpSyncClient, type CartLine } from './sale'
 import {
   apiBase,
@@ -208,6 +209,9 @@ export function App() {
           <p>{ausfall ? 'TSE-Ausfall — sem QR' : '—'}</p>
         )}
       </div>
+      </div>
+      <div style={{ fontFamily: 'system-ui', padding: 16 }}>
+        <TischPanel token={token} kasse={KASSE} products={products} rates={rates} tse={tse} />
       </div>
     </>
   )

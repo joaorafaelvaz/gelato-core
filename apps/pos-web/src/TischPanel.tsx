@@ -1,0 +1,146 @@
+import { useEffect, useState } from 'react'
+import { signWithFallback, type TseProvider, type TaxRate } from '@gelato/compliance'
+import {
+  listTables,
+  getSession,
+  openTable,
+  addBestellung,
+  payTable,
+  type TableRow,
+  type SessionView,
+  type ApiProduct,
+} from './api'
+
+const euro = (c: number): string =>
+  (c / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+
+/** Mapeia o resultado da TSE para o formato do evento (snake_case). */
+function tseFields(r: {
+  txNumber: number
+  signatureCounter: number
+  signatureValue: string
+  logTime: string
+  processType: string
+  serialNumber: string
+  publicKey: string
+}) {
+  return {
+    tx_number: r.txNumber,
+    signature_counter: r.signatureCounter,
+    signature_value: r.signatureValue,
+    log_time: r.logTime,
+    process_type: r.processType,
+    serial_number: r.serialNumber,
+    public_key: r.publicKey,
+  }
+}
+
+/**
+ * Fluxo mínimo de salão (1a-1): lista mesas, abre/continua conta, lança Bestellung
+ * (assinada Bestellung-V1) e fecha com Kassenbeleg-V1. UI rica de Tischplan = 1a-4.
+ */
+export function TischPanel({
+  token,
+  kasse,
+  products,
+  rates,
+  tse,
+}: {
+  token: string
+  kasse: string
+  products: ApiProduct[]
+  rates: TaxRate[]
+  tse: TseProvider
+}) {
+  const [tables, setTables] = useState<TableRow[]>([])
+  const [session, setSession] = useState<SessionView | null>(null)
+  const [msg, setMsg] = useState('')
+
+  const refresh = (): void => {
+    void listTables(token, kasse).then(setTables).catch(() => setTables([]))
+  }
+  useEffect(refresh, [token, kasse])
+
+  async function open(t: TableRow): Promise<void> {
+    const id = t.openSessionId ?? (await openTable(token, t.id, kasse)).id
+    setSession(await getSession(token, id))
+    refresh()
+  }
+
+  async function fire(p: ApiProduct): Promise<void> {
+    if (!session) return
+    const rate = rates.find((r) => r.code === p.mwstCodeImHaus)?.rate ?? 0
+    const gross = p.netCents + Math.round(p.netCents * rate)
+    const outcome = await signWithFallback(tse, {
+      clientId: 'c1',
+      processType: 'Bestellung-V1',
+      amountsByVatRate: [{ rate, gross }],
+      paymentType: 'Bar',
+      grossTotal: gross,
+    })
+    const tse_transaction =
+      outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
+    await addBestellung(token, session.id, {
+      client_event_id: crypto.randomUUID(),
+      type: 'bestellung',
+      session_id: session.id,
+      kasse_id: kasse,
+      items: [{ product_id: p.id, qty: 1, unit_net: p.netCents, mwst_rate: rate, mwst_code: p.mwstCodeImHaus }],
+      tse_transaction,
+    })
+    setSession(await getSession(token, session.id))
+  }
+
+  async function pay(): Promise<void> {
+    if (!session || session.tab.totalGross === 0) return
+    const outcome = await signWithFallback(tse, {
+      clientId: 'c1',
+      processType: 'Kassenbeleg-V1',
+      amountsByVatRate: session.tab.byVatRate.map((g) => ({ rate: g.rate, gross: g.gross })),
+      paymentType: 'Bar',
+      grossTotal: session.tab.totalGross,
+    })
+    const tse_transaction =
+      outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
+    await payTable(token, session.id, {
+      client_event_id: crypto.randomUUID(),
+      payment: { method: 'cash', amount: session.tab.totalGross },
+      tse: tse_transaction,
+    })
+    setMsg(`Mesa paga — ${euro(session.tab.totalGross)}`)
+    setSession(null)
+    refresh()
+  }
+
+  return (
+    <section style={{ marginTop: 16, borderTop: '1px solid #ddd', paddingTop: 8 }}>
+      <h3>Salão (Tische)</h3>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {tables.map((t) => (
+          <button key={t.id} onClick={() => void open(t)}>
+            {t.name}
+            {t.openSessionId ? ' • aberta' : ''}
+          </button>
+        ))}
+      </div>
+      {session && (
+        <div style={{ marginTop: 8 }}>
+          <p style={{ fontWeight: 600 }}>
+            Conta {session.tischId} — {euro(session.tab.totalGross)}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+            {products.map((p) => (
+              <button key={p.id} onClick={() => void fire(p)}>
+                + {p.name}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => void pay()} style={{ marginTop: 8, padding: 8, width: '100%' }}>
+            Pagar (Kassenbeleg)
+          </button>
+        </div>
+      )}
+      {msg && <p style={{ fontSize: 13 }}>{msg}</p>}
+    </section>
+  )
+}

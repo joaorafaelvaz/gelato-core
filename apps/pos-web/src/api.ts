@@ -54,6 +54,12 @@ async function authedPost<T>(path: string, token: string, body: unknown): Promis
   return res.json() as Promise<T>
 }
 
+async function authedGet<T>(path: string, token: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } })
+  if (!res.ok) throw new Error(`${path} -> ${res.status}`)
+  return res.json() as Promise<T>
+}
+
 export interface Shift {
   id: string
   status: string
@@ -88,3 +94,35 @@ export const reportX = (token: string, kasseId: string) =>
   authedPost<{ totals: DayTotals }>('/pos/reports/x', token, { kasse_id: kasseId })
 export const reportZ = (token: string, kasseId: string) =>
   authedPost<ZReport>('/pos/reports/z', token, { kasse_id: kasseId })
+
+// --- Salão / Tische (1a-1) ---
+export interface TableRow {
+  id: string
+  name: string
+  openSessionId: string | null
+}
+export interface TabState {
+  lines: { productId: string; mwstCode: string; mwstRate: number; qty: number; net: number }[]
+  byVatRate: VatGroup[]
+  totalNet: number
+  totalMwst: number
+  totalGross: number
+}
+export interface SessionView {
+  id: string
+  tischId: string
+  status: string
+  orderId: string | null
+  tab: TabState
+}
+
+export const listTables = (token: string, kasseId: string) =>
+  authedGet<TableRow[]>(`/pos/tables?kasse_id=${encodeURIComponent(kasseId)}`, token)
+export const getSession = (token: string, id: string) =>
+  authedGet<SessionView>(`/pos/sessions/${id}`, token)
+export const openTable = (token: string, tischId: string, kasseId: string) =>
+  authedPost<{ id: string }>(`/pos/tables/${tischId}/open`, token, { kasse_id: kasseId })
+export const addBestellung = (token: string, id: string, event: unknown) =>
+  authedPost<{ bestellungId: string; duplicate: boolean }>(`/pos/sessions/${id}/bestellung`, token, event)
+export const payTable = (token: string, id: string, body: unknown) =>
+  authedPost<{ orderId: string; duplicate: boolean }>(`/pos/sessions/${id}/pay`, token, body)
