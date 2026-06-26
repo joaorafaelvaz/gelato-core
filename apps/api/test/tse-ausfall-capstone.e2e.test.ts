@@ -18,7 +18,9 @@ describe('TSE-Ausfall capstone (terminal -> real HTTP -> ledger)', () => {
   let baseUrl: string
   let token: string
   let prisma: PrismaClient
-  const KASSE = 'kasse-1d-capstone'
+  // Kasse única por execução: o ledger é append-only (acumula entre runs), então
+  // um id fixo somaria orders de rodadas anteriores. Único → contagem absoluta vale.
+  let KASSE = ''
 
   const rates: TaxRate[] = [
     { code: 'standard_19', rate: 0.19, validFrom: new Date('2020-01-01') },
@@ -50,12 +52,10 @@ describe('TSE-Ausfall capstone (terminal -> real HTTP -> ledger)', () => {
     })
     token = ((await res.json()) as { access_token: string }).access_token
     prisma = new PrismaClient()
-    // Kasse dedicada → isola a contagem de orders/log dos demais arquivos de teste.
+    KASSE = `kasse-1d-cap-${crypto.randomUUID().slice(0, 8)}`
     const bs = await prisma.betriebsstaette.findFirst()
-    await prisma.kasse.upsert({
-      where: { id: KASSE },
-      update: {},
-      create: { id: KASSE, name: '1d capstone', betriebsstaetteId: bs!.id },
+    await prisma.kasse.create({
+      data: { id: KASSE, name: '1d capstone', betriebsstaetteId: bs!.id },
     })
   }, 30000)
 
