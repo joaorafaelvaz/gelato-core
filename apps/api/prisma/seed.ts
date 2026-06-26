@@ -126,6 +126,42 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
       },
     })
   }
+
+  // Catálogo com categoria + variantes + modifier (fatia 1a-3).
+  const eis = await prisma.productCategory.upsert({
+    where: { id: 'cat-eis' },
+    update: {},
+    create: { id: 'cat-eis', tenantId: TENANT_ID, name: 'Eis' },
+  })
+  const becher = await prisma.product.upsert({
+    where: { id: 'prod-eisbecher' },
+    update: {},
+    create: {
+      id: 'prod-eisbecher',
+      tenantId: TENANT_ID,
+      categoryId: eis.id,
+      name: 'Eisbecher',
+      netCents: 450,
+      mwstCodeImHaus: 'standard_19',
+      mwstCodeAusserHaus: 'reduced_7',
+    },
+  })
+  for (const [id, name, netCents, sortOrder] of [
+    ['var-s', 'S', 300, 1],
+    ['var-m', 'M', 450, 2],
+    ['var-l', 'L', 600, 3],
+  ] as const) {
+    await prisma.productVariant.upsert({
+      where: { id },
+      update: {},
+      create: { id, productId: becher.id, name, netCents, sortOrder },
+    })
+  }
+  await prisma.productModifier.upsert({
+    where: { id: 'mod-sahne' },
+    update: {},
+    create: { id: 'mod-sahne', productId: becher.id, name: 'extra Sahne', netCents: 50 },
+  })
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {

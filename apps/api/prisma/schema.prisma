@@ -161,6 +161,7 @@ model TaxRate {
 model Product {
   id                 String   @id @default(cuid())
   tenantId           String
+  categoryId         String?
   name               String
   type               String   @default("vendavel") // vendavel | insumo | semi_acabado
   // netCents: preço NET em cents (a decomposição de MwSt é feita pelo motor)
@@ -171,9 +172,52 @@ model Product {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant    Tenant            @relation(fields: [tenantId], references: [id])
+  category  ProductCategory?  @relation(fields: [categoryId], references: [id])
+  variants  ProductVariant[]
+  modifiers ProductModifier[]
 
   @@map("products")
+}
+
+model ProductCategory {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@map("product_categories")
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  netCents  Int
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_variants")
+}
+
+model ProductModifier {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  netCents  Int
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_modifiers")
 }
 
 model Shift {
@@ -242,10 +286,12 @@ model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
   productId String
+  variantId String?
   qty       Int
   unitNet   Int
   mwstRate  Decimal @db.Decimal(5, 4)
   mwstCode  String
+  modifiers Json?
 
   order Order @relation(fields: [orderId], references: [id])
 
@@ -354,10 +400,12 @@ model BestellungItem {
   id           String  @id @default(cuid())
   bestellungId String
   productId    String
+  variantId    String?
   qty          Int
   unitNet      Int
   mwstRate     Decimal @db.Decimal(5, 4)
   mwstCode     String
+  modifiers    Json?
   stornoOf     String?
 
   bestellung Bestellung @relation(fields: [bestellungId], references: [id])
