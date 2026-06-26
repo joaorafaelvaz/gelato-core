@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { signWithFallback, type TseProvider, type TaxRate } from '@gelato/compliance'
+import { signWithFallback, buildSaleLine, type TseProvider, type TaxRate } from '@gelato/compliance'
 import {
   listTables,
   getSession,
@@ -10,6 +10,7 @@ import {
   type TableRow,
   type SessionView,
   type ApiProduct,
+  type ApiVariant,
 } from './api'
 
 const euro = (c: number): string =>
@@ -70,8 +71,25 @@ export function TischPanel({
 
   async function fire(p: ApiProduct): Promise<void> {
     if (!session) return
-    const rate = rates.find((r) => r.code === p.mwstCodeImHaus)?.rate ?? 0
-    const gross = p.netCents + Math.round(p.netCents * rate)
+    // Variante (se houver) + modifiers (seleção simples por nome).
+    let variant: ApiVariant | undefined
+    if (p.variants && p.variants.length > 0) {
+      const choice = window.prompt(`Variante (${p.variants.map((v) => v.name).join('/')}):`, p.variants[0]!.name)
+      variant = p.variants.find((v) => v.name === choice) ?? p.variants[0]
+    }
+    let chosen: ApiVariant[] = []
+    if (p.modifiers && p.modifiers.length > 0) {
+      const sel = window.prompt(`Modifiers (vírgula): ${p.modifiers.map((m) => m.name).join(', ')}`, '')
+      const names = (sel ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+      chosen = p.modifiers.filter((m) => names.includes(m.name))
+    }
+    const line = buildSaleLine(
+      { baseNetCents: p.netCents, mwstCode: p.mwstCodeImHaus },
+      variant ? { netCents: variant.netCents } : undefined,
+      chosen.map((m) => ({ id: m.id, name: m.name, net: m.netCents })),
+    )
+    const rate = rates.find((r) => r.code === line.mwstCode)?.rate ?? 0
+    const gross = line.unitNet + Math.round(line.unitNet * rate)
     const outcome = await signWithFallback(tse, {
       clientId: 'c1',
       processType: 'Bestellung-V1',
@@ -79,14 +97,15 @@ export function TischPanel({
       paymentType: 'Bar',
       grossTotal: gross,
     })
-    const tse_transaction =
-      outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
+    const tse_transaction = outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
     await addBestellung(token, session.id, {
       client_event_id: crypto.randomUUID(),
       type: 'bestellung',
       session_id: session.id,
       kasse_id: kasse,
-      items: [{ product_id: p.id, qty: 1, unit_net: p.netCents, mwst_rate: rate, mwst_code: p.mwstCodeImHaus }],
+      items: [
+        { product_id: p.id, variant_id: variant?.id, qty: 1, unit_net: line.unitNet, mwst_rate: rate, mwst_code: line.mwstCode, modifiers: line.modifiers },
+      ],
       tse_transaction,
     })
     setSession(await getSession(token, session.id))

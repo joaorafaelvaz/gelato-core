@@ -4,12 +4,20 @@ export interface LoginResult {
   access_token: string
   permissions: string[]
 }
+export interface ApiVariant {
+  id: string
+  name: string
+  netCents: number
+}
 export interface ApiProduct {
   id: string
   name: string
   netCents: number
   mwstCodeImHaus: string
   mwstCodeAusserHaus: string
+  categoryId?: string | null
+  variants?: ApiVariant[]
+  modifiers?: ApiVariant[]
 }
 export interface ApiTaxRate {
   code: string
