@@ -41,4 +41,11 @@ export class ExportsController {
     })
     res.send(buf)
   }
+
+  @Get('kassenmeldung')
+  @RequirePermission('admin.kassenmeldung')
+  async kassenmeldung(@Req() req: { user: JwtUser }, @Query('kasse_id') kasseId: string) {
+    if (!kasseId) throw new BadRequestException('kasse_id required')
+    return this.exports.kassenmeldung(req.user.tenant_id, kasseId)
+  }
 }

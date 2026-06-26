@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import JSZip from 'jszip'
-import { buildDsfinvkPackage, type DsfinvkInput, type ZClosing, type Bon } from '@gelato/compliance'
+import { buildDsfinvkPackage, buildKassenmeldung, type DsfinvkInput, type ZClosing, type Bon, type KassenmeldungPayload } from '@gelato/compliance'
 import type { DayTotals } from '@gelato/compliance'
 import { applyRate } from '@gelato/domain'
 import { PrismaService } from '../prisma/prisma.service'
@@ -121,6 +121,30 @@ export class ExportsService {
       taxRates: taxRates.map((t) => ({ code: t.code, rate: Number(t.rate), description: t.code })),
       zClosings,
     }
+  }
+
+  /** Payload estruturado da Kassenmeldung (§146a) — sem submissão ELSTER. */
+  async kassenmeldung(tenantId: string, kasseId: string): Promise<KassenmeldungPayload> {
+    const kasse = await this.prisma.kasse.findFirst({
+      where: { id: kasseId, betriebsstaette: { tenantId } },
+      include: { tseClient: true, betriebsstaette: true },
+    })
+    if (!kasse) throw new NotFoundException('kasse not found')
+    return buildKassenmeldung({
+      betrieb: {
+        name: kasse.betriebsstaette.name,
+        street: kasse.betriebsstaette.address ?? undefined,
+        finanzamtNr: kasse.betriebsstaette.finanzamtNr ?? undefined,
+      },
+      kasse: { id: kasse.id, name: kasse.name, serialNr: kasse.tseClient?.serialNr ?? undefined, swBrand: 'gelato-core', swVersion: undefined },
+      tse: {
+        provider: kasse.tseClient?.provider ?? 'unknown',
+        serial: kasse.tseClient?.serialNr ?? undefined,
+        certificate: kasse.tseClient?.publicKey ?? undefined,
+        inUseSince: kasse.tseClient?.createdAt.toISOString(),
+      },
+      acquisition: { kind: 'Kauf', date: kasse.createdAt.toISOString() },
+    })
   }
 
   /** Pacote DSFinV-K zipado (Buffer). Read-only. */

@@ -73,4 +73,14 @@ describe('DSFinV-K export (e2e)', () => {
     })
     expect(res.status).toBe(403)
   })
+
+  it('returns the kassenmeldung payload for the kasse', async () => {
+    const res = await fetch(`${baseUrl}/exports/kassenmeldung?kasse_id=${KASSE}`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { tse: { serial: string }; submitted: boolean }
+    expect(body.tse.serial).toBe('SER-1C')
+    expect(body.submitted).toBe(false)
+  })
 })
