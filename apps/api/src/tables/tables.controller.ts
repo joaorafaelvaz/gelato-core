@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, Req, UseGuards, BadRequestException } from '@nestjs/common'
+import { z } from 'zod'
 import { BestellungEventSchema } from '@gelato/domain'
 import { TablesService } from './tables.service'
 import { JwtAuthGuard, type JwtUser } from '../auth/jwt-auth.guard'
@@ -40,4 +41,18 @@ export class TablesController {
     if (event.session_id !== id) throw new BadRequestException('session_id mismatch')
     return this.tables.addBestellung(id, event, req.user.sub)
   }
+
+  @Post('sessions/:id/pay')
+  @HttpCode(200)
+  @RequirePermission('pos.sale.create')
+  async pay(@Req() req: { user: JwtUser; ip?: string; headers: Record<string, string> }, @Param('id') id: string, @Body() body: unknown) {
+    const dto = parseOrThrow(PayDto, body)
+    return this.tables.pay(id, dto, { userId: req.user.sub, ip: req.ip, device: req.headers['user-agent'] })
+  }
 }
+
+const PayDto = z.object({
+  client_event_id: z.string().uuid(),
+  payment: z.object({ method: z.literal('cash'), amount: z.number().int(), ref: z.string().optional() }),
+  tse: z.record(z.unknown()),
+})

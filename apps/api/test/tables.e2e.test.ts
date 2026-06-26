@@ -84,4 +84,38 @@ describe('Tables / conta aberta (e2e)', () => {
     const row = list.find((t) => t.id === TISCH)!
     expect(row.openSessionId).toBeTruthy()
   })
+
+  it('pays a session: writes a Kassenbeleg linked to the table and marks it paid (idempotent)', async () => {
+    const tisch = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    await prisma.tisch.create({ data: { id: tisch, betriebsstaetteId: 'demo-bs', name: 'pay' } })
+    const sessionId = ((await (await post(`/pos/tables/${tisch}/open`, { kasse_id: 'demo-kasse' })).json()) as { id: string }).id
+    await post(`/pos/sessions/${sessionId}/bestellung`, await signedBestellung(sessionId, [
+      { product_id: 'p1', qty: 3, unit_net: 100, mwst_rate: 0.19, mwst_code: 'standard_19' },
+    ]))
+    const tab = ((await (await get(`/pos/sessions/${sessionId}`)).json()) as { tab: { totalGross: number } }).tab
+    expect(tab.totalGross).toBe(357) // 3 * 100 * 1.19
+
+    const r = await tse.sign({ clientId: 'c1', processType: 'Kassenbeleg-V1', amountsByVatRate: [], paymentType: 'Bar', grossTotal: tab.totalGross })
+    const clientEventId = crypto.randomUUID()
+    const payBody = {
+      client_event_id: clientEventId,
+      payment: { method: 'cash', amount: tab.totalGross },
+      tse: { tx_number: r.txNumber, signature_counter: r.signatureCounter, signature_value: r.signatureValue, log_time: r.logTime, process_type: r.processType, serial_number: r.serialNumber, public_key: r.publicKey },
+    }
+    const pay = await post(`/pos/sessions/${sessionId}/pay`, payBody)
+    expect(pay.status).toBe(200)
+    const orderId = ((await pay.json()) as { orderId: string }).orderId
+
+    const order = await prisma.order.findUnique({ where: { clientEventId } })
+    expect(order?.tableId).toBe(tisch)
+    const after = (await (await get(`/pos/sessions/${sessionId}`)).json()) as { status: string; orderId: string }
+    expect(after.status).toBe('paid')
+    expect(after.orderId).toBe(orderId)
+
+    // retry idempotente do mesmo pagamento → mesmo order, sem duplicar
+    const pay2 = await post(`/pos/sessions/${sessionId}/pay`, payBody)
+    expect(pay2.status).toBe(200)
+    expect(((await pay2.json()) as { duplicate: boolean }).duplicate).toBe(true)
+    expect(await prisma.order.count({ where: { clientEventId } })).toBe(1)
+  })
 })

@@ -1,17 +1,15 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
 import { aggregateTab, type TabItemInput } from '@gelato/compliance'
-import type { BestellungEvent } from '@gelato/domain'
+import type { BestellungEvent, SaleEvent } from '@gelato/domain'
 import { PrismaService } from '../prisma/prisma.service'
-
-export interface Actor {
-  userId?: string
-  ip?: string
-  device?: string
-}
+import { LedgerService, type Actor } from '../pos/ledger.service'
 
 @Injectable()
 export class TablesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ledger: LedgerService,
+  ) {}
 
   /** Mesas da Betriebsstätte da Kasse + a sessão aberta (se houver). */
   async listTables(kasseId: string) {
@@ -113,5 +111,54 @@ export class TablesService {
       })
       return { duplicate: false, bestellungId: b.id }
     })
+  }
+
+  /**
+   * Fecha a conta: grava o Kassenbeleg imutável (reusa o ledger → resiliência
+   * TSE-Ausfall), liga `order` ↔ sessão e marca a sessão `paid`. Idempotente.
+   */
+  async pay(
+    sessionId: string,
+    body: { client_event_id: string; payment: { method: 'cash'; amount: number; ref?: string }; tse: Record<string, unknown> },
+    actor: Actor,
+  ): Promise<{ orderId: string; duplicate: boolean }> {
+    const session = await this.prisma.tischsession.findUnique({
+      where: { id: sessionId },
+      include: { bestellungen: { include: { items: true } } },
+    })
+    if (!session) throw new NotFoundException('session')
+    if (session.status === 'paid') {
+      // Retry idempotente do mesmo pagamento → devolve o pedido existente.
+      const existing = await this.prisma.order.findUnique({ where: { clientEventId: body.client_event_id } })
+      if (existing) return { orderId: existing.id, duplicate: true }
+      throw new ConflictException('session already paid')
+    }
+    if (session.status !== 'open') throw new ConflictException('session not open')
+
+    const items: TabItemInput[] = session.bestellungen.flatMap((b) =>
+      b.items.map((i) => ({ productId: i.productId, qty: i.qty, unitNet: i.unitNet, mwstRate: Number(i.mwstRate), mwstCode: i.mwstCode })),
+    )
+    const tab = aggregateTab(items)
+    const lines = tab.lines.filter((l) => l.qty !== 0)
+    if (lines.length === 0) throw new BadRequestException('empty tab')
+
+    const saleEvent: SaleEvent = {
+      client_event_id: body.client_event_id,
+      type: 'sale',
+      kasse_id: session.kasseId,
+      payload: {
+        order: { mode: 'im_haus', table_id: session.tischId, total_net: tab.totalNet, total_mwst: tab.totalMwst, total_gross: tab.totalGross },
+        items: lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: Math.round(l.net / l.qty), mwst_rate: l.mwstRate, mwst_code: l.mwstCode })),
+        payment: body.payment,
+        receipt: { qr_payload: '', format: 'digital' },
+        tse_transaction: body.tse as SaleEvent['payload']['tse_transaction'],
+      },
+    }
+    const result = await this.ledger.ingest(saleEvent, actor)
+    await this.prisma.tischsession.update({
+      where: { id: sessionId },
+      data: { status: 'paid', closedAt: new Date(), orderId: result.orderId },
+    })
+    return { orderId: result.orderId, duplicate: result.duplicate }
   }
 }
