@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { finalizeSale, type CartLine } from '../src/sale/finalize'
 import { LocalRepo } from '../src/db/local-repo'
-import { FakeTseProvider, type TaxRate, type TseProvider } from '@gelato/compliance'
+import { FakeTseProvider, AusfallTracker, type TaxRate } from '@gelato/compliance'
 import { SaleEventSchema } from '@gelato/domain'
 
 const rates: TaxRate[] = [
@@ -41,6 +41,7 @@ describe('finalizeSale', () => {
       tse,
       repo,
       seller: { name: 'Gelateria Demo' },
+      tracker: new AusfallTracker(),
       idGen: () => '99999999-9999-4999-8999-999999999999',
     })
 
@@ -52,25 +53,6 @@ describe('finalizeSale', () => {
     expect(repo.pendingOutbox(at.getTime() + 1)).toHaveLength(1)
   })
 
-  it('does NOT persist anything if signing fails (C0 blocks the sale)', async () => {
-    repo = new LocalRepo()
-    const failingTse: TseProvider = {
-      sign: () => Promise.reject(new Error('TSE offline')),
-    }
-    await expect(
-      finalizeSale({
-        cart,
-        mode: 'ausser_haus',
-        at,
-        rates,
-        kasseId: 'demo-kasse',
-        tseClientId: 'c1',
-        tse: failingTse,
-        repo,
-        seller: { name: 'Gelateria Demo' },
-      }),
-    ).rejects.toThrow('TSE offline')
-    expect(repo.countSales()).toBe(0)
-    expect(repo.countOutbox()).toBe(0)
-  })
+  // O modo de falha (TSE indisponível → venda em Ausfall, não bloqueia) é coberto
+  // por finalize-ausfall.test.ts (fatia 1d). No C0 a falha bloqueava; isso mudou.
 })

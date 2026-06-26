@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { finalizeSale, runOutboxOnce, type CartLine, type SyncClient } from '../src/sale'
 import { IdbStore } from '../src/idb-store'
-import { FakeTseProvider, type TaxRate } from '@gelato/compliance'
+import { FakeTseProvider, AusfallTracker, type TaxRate } from '@gelato/compliance'
 import { SaleEventSchema } from '@gelato/domain'
 
 const rates: TaxRate[] = [
@@ -42,6 +42,7 @@ describe('web finalizeSale + outbox (entirely in-browser, IndexedDB)', () => {
       tse,
       store,
       seller: { name: 'Demo' },
+      tracker: new AusfallTracker(),
       idGen: () => '99999999-9999-4999-8999-999999999999',
     })
     expect(event.payload.order).toMatchObject({ total_net: 400, total_mwst: 76, total_gross: 476 })
@@ -63,6 +64,7 @@ describe('web finalizeSale + outbox (entirely in-browser, IndexedDB)', () => {
       tse,
       store,
       seller: { name: 'Demo' },
+      tracker: new AusfallTracker(),
     })
     expect(event.payload.order.total_mwst).toBe(28) // 400 * 0.07
   })
@@ -79,6 +81,7 @@ describe('web finalizeSale + outbox (entirely in-browser, IndexedDB)', () => {
       tse,
       store,
       seller: { name: 'Demo' },
+      tracker: new AusfallTracker(),
     })
     const down: SyncClient = { post: () => Promise.reject(new Error('offline')) }
     expect(await runOutboxOnce(store, down, at.getTime())).toEqual({ sent: 0, failed: 1 })

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import type { SaleEvent } from '@gelato/domain'
+import type { AusfallOpenState } from '@gelato/compliance'
 
 // SQLite local = buffer offline-first. As linhas de venda são gravadas append-only;
 // o outbox guarda o evento a sincronizar (status operacional pode mudar).
@@ -18,6 +19,10 @@ CREATE TABLE IF NOT EXISTS outbox (
   attempts INTEGER NOT NULL DEFAULT 0,
   next_attempt_at INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
 );
 `
 
@@ -57,6 +62,37 @@ export class LocalRepo {
         .run(event.client_event_id, json, now)
     })
     tx()
+  }
+
+  /** Enfileira um evento (ex.: Ausfall) no outbox, sem linha de venda. Idempotente. */
+  enqueueOutbox(clientEventId: string, payload: string, now: number = Date.now()): void {
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO outbox (client_event_id, payload, status, attempts, next_attempt_at, created_at)
+         VALUES (?, ?, 'pending', 0, 0, ?)`,
+      )
+      .run(clientEventId, payload, now)
+  }
+
+  /** Estado do período de Ausfall em aberto (persistido p/ sobreviver a restart). */
+  getAusfallState(): AusfallOpenState | null {
+    const row = this.db.prepare(`SELECT value FROM meta WHERE key = 'ausfall'`).get() as
+      | { value: string }
+      | undefined
+    return row ? (JSON.parse(row.value) as AusfallOpenState) : null
+  }
+
+  setAusfallState(state: AusfallOpenState | null): void {
+    if (state === null) {
+      this.db.prepare(`DELETE FROM meta WHERE key = 'ausfall'`).run()
+      return
+    }
+    this.db
+      .prepare(
+        `INSERT INTO meta (key, value) VALUES ('ausfall', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      )
+      .run(JSON.stringify(state))
   }
 
   pendingOutbox(now: number = Date.now()): OutboxRow[] {

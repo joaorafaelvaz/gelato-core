@@ -1,9 +1,10 @@
 import { openDB, type IDBPDatabase } from 'idb'
 import type { SaleEvent } from '@gelato/domain'
+import type { AusfallOpenState } from '@gelato/compliance'
 import type { OutboxRow, SaleStore } from './store'
 
 const DB_NAME = 'gelato-pos'
-const VERSION = 1
+const VERSION = 2
 
 /**
  * Armazenamento local do terminal no NAVEGADOR (IndexedDB). Vendas append-only +
@@ -20,6 +21,9 @@ export class IdbStore implements SaleStore {
         }
         if (!db.objectStoreNames.contains('outbox')) {
           db.createObjectStore('outbox', { keyPath: 'client_event_id' })
+        }
+        if (!db.objectStoreNames.contains('meta')) {
+          db.createObjectStore('meta', { keyPath: 'key' })
         }
       },
     })
@@ -51,6 +55,36 @@ export class IdbStore implements SaleStore {
       })
     }
     await tx.done
+  }
+
+  async enqueueOutbox(clientEventId: string, payload: string, now: number = Date.now()): Promise<void> {
+    const db = await this.dbp
+    if ((await db.getKey('outbox', clientEventId)) !== undefined) return
+    await db.add('outbox', {
+      client_event_id: clientEventId,
+      payload,
+      status: 'pending',
+      attempts: 0,
+      next_attempt_at: 0,
+      created_at: now,
+    })
+  }
+
+  async getAusfallState(): Promise<AusfallOpenState | null> {
+    const db = await this.dbp
+    const row = (await db.get('meta', 'ausfall')) as
+      | { key: string; value: AusfallOpenState }
+      | undefined
+    return row ? row.value : null
+  }
+
+  async setAusfallState(state: AusfallOpenState | null): Promise<void> {
+    const db = await this.dbp
+    if (state === null) {
+      await db.delete('meta', 'ausfall')
+      return
+    }
+    await db.put('meta', { key: 'ausfall', value: state })
   }
 
   async pendingOutbox(now: number = Date.now()): Promise<OutboxRow[]> {

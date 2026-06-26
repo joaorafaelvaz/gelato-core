@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { LocalRepo, finalizeSale, runOutboxOnce, HttpSyncClient, type SyncClient } from '@gelato/pos-terminal'
-import { FakeTseProvider, type TaxRate } from '@gelato/compliance'
+import { FakeTseProvider, AusfallTracker, type TaxRate } from '@gelato/compliance'
 import { AppModule } from '../src/app.module'
 
 /**
@@ -69,6 +69,7 @@ describe('terminal -> central ledger (real HTTP e2e)', () => {
       tse: new FakeTseProvider({ clock: () => at }),
       repo,
       seller: { name: 'Demo' },
+      tracker: new AusfallTracker(),
       idGen: () => eid,
     })
     expect(event.client_event_id).toBe(eid)

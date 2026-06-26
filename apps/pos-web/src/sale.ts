@@ -1,14 +1,17 @@
 import {
   computeMwst,
   buildReceipt,
+  signWithFallback,
+  type AusfallTracker,
+  type SignOutcome,
   type TseProvider,
   type TaxRate,
   type MwstProductRef,
   type ReceiptModel,
   type SellerInfo,
 } from '@gelato/compliance'
-import { makeEnvelope } from '@gelato/sync'
-import { applyRate, type ConsumptionMode, type SaleEvent } from '@gelato/domain'
+import { makeEnvelope, makeAusfallEnvelope } from '@gelato/sync'
+import { applyRate, type ConsumptionMode, type SaleEvent, type PosEvent } from '@gelato/domain'
 import type { SaleStore } from './store'
 
 export interface CartLine {
@@ -27,18 +30,26 @@ export interface FinalizeOpts {
   tse: TseProvider
   store: SaleStore
   seller: SellerInfo
+  tracker: AusfallTracker
+  timeoutMs?: number
   idGen?: () => string
 }
 
+export interface FinalizeResult {
+  event: SaleEvent
+  receipt: ReceiptModel
+  outcome: SignOutcome
+}
+
 /**
- * Finaliza a venda INTEIRAMENTE no navegador: MwSt → assina (TSE) → recibo+QR →
- * grava no IndexedDB (append-only) + enfileira no outbox. Mesma lógica fiscal do
- * terminal Electron (pacotes @gelato/*), só que com store async.
+ * Finaliza a venda INTEIRAMENTE no navegador: MwSt → tenta assinar (TSE) com timeout →
+ * recibo (com/sem QR) → grava no IndexedDB (append-only) + outbox. Se a TSE estiver
+ * indisponível, a venda completa em modo TSE-Ausfall (sem assinatura) — nunca bloqueia.
+ * Mesma lógica fiscal do terminal Electron (pacotes @gelato/*), só que com store async.
  */
-export async function finalizeSale(
-  opts: FinalizeOpts,
-): Promise<{ event: SaleEvent; receipt: ReceiptModel }> {
-  const { cart, mode, at, rates, kasseId, shiftId, tseClientId, tse, store, seller, idGen } = opts
+export async function finalizeSale(opts: FinalizeOpts): Promise<FinalizeResult> {
+  const { cart, mode, at, rates, kasseId, shiftId, tseClientId, tse, store, seller, tracker, timeoutMs, idGen } =
+    opts
   if (cart.length === 0) throw new Error('empty cart')
 
   const breakdown = computeMwst(
@@ -51,13 +62,18 @@ export async function finalizeSale(
     mode === 'im_haus' ? l.product.mwstCodeImHaus : l.product.mwstCodeAusserHaus
   const rateFor = (code: string): number => breakdown.groups.find((g) => g.code === code)?.rate ?? 0
 
-  const tseResult = await tse.sign({
-    clientId: tseClientId,
-    processType: 'Kassenbeleg-V1',
-    amountsByVatRate: breakdown.groups.map((g) => ({ rate: g.rate, gross: g.gross })),
-    paymentType: 'Bar',
-    grossTotal: breakdown.totalGross,
-  })
+  const outcome = await signWithFallback(
+    tse,
+    {
+      clientId: tseClientId,
+      processType: 'Kassenbeleg-V1',
+      amountsByVatRate: breakdown.groups.map((g) => ({ rate: g.rate, gross: g.gross })),
+      paymentType: 'Bar',
+      grossTotal: breakdown.totalGross,
+    },
+    { timeoutMs },
+  )
+  const tseResult = outcome.kind === 'signed' ? outcome.tse : null
 
   const receipt = buildReceipt({
     seller,
@@ -79,6 +95,19 @@ export async function finalizeSale(
     payment: { method: 'cash', amount: breakdown.totalGross },
     tse: tseResult,
   })
+
+  const tseTransaction = tseResult
+    ? {
+        tx_number: tseResult.txNumber,
+        signature_counter: tseResult.signatureCounter,
+        signature_value: tseResult.signatureValue,
+        log_time: tseResult.logTime,
+        process_type: tseResult.processType,
+        serial_number: tseResult.serialNumber,
+        public_key: tseResult.publicKey,
+        is_ausfall: false,
+      }
+    : { is_ausfall: true }
 
   const event = makeEnvelope(
     kasseId,
@@ -102,21 +131,27 @@ export async function finalizeSale(
       }),
       payment: { method: 'cash', amount: breakdown.totalGross },
       receipt: { qr_payload: receipt.qrPayload, format: 'digital' },
-      tse_transaction: {
-        tx_number: tseResult.txNumber,
-        signature_counter: tseResult.signatureCounter,
-        signature_value: tseResult.signatureValue,
-        log_time: tseResult.logTime,
-        process_type: tseResult.processType,
-        serial_number: tseResult.serialNumber,
-        public_key: tseResult.publicKey,
-      },
+      tse_transaction: tseTransaction,
     },
     idGen,
   )
 
-  await store.saveFinalizedSale(event, at.getTime())
-  return { event, receipt }
+  const now = at.getTime()
+  await store.saveFinalizedSale(event, now)
+
+  // Borda do período: emite started/ended uma única vez e persiste o estado.
+  const reason = outcome.kind === 'ausfall' ? outcome.reason : ''
+  for (const kind of tracker.record(outcome.kind, at.toISOString(), reason)) {
+    const env = makeAusfallEnvelope(
+      kasseId,
+      { event_type: kind, at: at.toISOString(), reason: kind === 'started' ? reason : undefined },
+      idGen,
+    )
+    await store.enqueueOutbox(env.client_event_id, JSON.stringify(env), now)
+  }
+  await store.setAusfallState(tracker.current)
+
+  return { event, receipt, outcome }
 }
 
 export interface SyncResponse {
@@ -126,7 +161,7 @@ export interface SyncResponse {
 }
 
 export interface SyncClient {
-  post(event: SaleEvent): Promise<SyncResponse>
+  post(event: PosEvent): Promise<SyncResponse>
 }
 
 /** Processa o outbox uma vez (igual ao terminal Electron, store async). */
@@ -140,7 +175,7 @@ export async function runOutboxOnce(
   let sent = 0
   let failed = 0
   for (const row of pending) {
-    const event = JSON.parse(row.payload) as SaleEvent
+    const event = JSON.parse(row.payload) as PosEvent
     try {
       const res = await client.post(event)
       if (res.ok || res.duplicate) {
@@ -164,7 +199,7 @@ export class HttpSyncClient implements SyncClient {
     private readonly token: string,
   ) {}
 
-  async post(event: SaleEvent): Promise<SyncResponse> {
+  async post(event: PosEvent): Promise<SyncResponse> {
     const res = await fetch(`${this.baseUrl}/pos/sync`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${this.token}` },

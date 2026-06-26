@@ -1,13 +1,16 @@
 import {
   computeMwst,
   buildReceipt,
+  signWithFallback,
+  type AusfallTracker,
+  type SignOutcome,
   type TseProvider,
   type TaxRate,
   type MwstProductRef,
   type ReceiptModel,
   type SellerInfo,
 } from '@gelato/compliance'
-import { makeEnvelope } from '@gelato/sync'
+import { makeEnvelope, makeAusfallEnvelope } from '@gelato/sync'
 import { applyRate, type ConsumptionMode, type SaleEvent } from '@gelato/domain'
 import type { LocalRepo } from '../db/local-repo'
 
@@ -27,18 +30,27 @@ export interface FinalizeOpts {
   tse: TseProvider
   repo: LocalRepo
   seller: SellerInfo
+  tracker: AusfallTracker
+  timeoutMs?: number
   idGen?: () => string
 }
 
+export interface FinalizeResult {
+  event: SaleEvent
+  receipt: ReceiptModel
+  outcome: SignOutcome
+}
+
 /**
- * Finaliza uma venda no terminal: calcula MwSt → assina na TSE → monta recibo+QR →
- * grava append-only local + enfileira no outbox. No Ciclo 0, se a assinatura falhar,
- * propaga o erro e NÃO grava nada (caminho feliz online; modo de falha = Ciclo 1).
+ * Finaliza uma venda no terminal: calcula MwSt → tenta assinar na TSE com timeout →
+ * monta recibo (com ou sem QR) → grava append-only local + enfileira no outbox. Se a
+ * TSE estiver indisponível (falha/timeout), a venda completa MESMO ASSIM em modo
+ * TSE-Ausfall (sem assinatura): nunca bloqueia. O tracker emite started/ended na
+ * borda do período (enfileirados no outbox) e o estado é persistido localmente.
  */
-export async function finalizeSale(
-  opts: FinalizeOpts,
-): Promise<{ event: SaleEvent; receipt: ReceiptModel }> {
-  const { cart, mode, at, rates, kasseId, shiftId, tseClientId, tse, repo, seller, idGen } = opts
+export async function finalizeSale(opts: FinalizeOpts): Promise<FinalizeResult> {
+  const { cart, mode, at, rates, kasseId, shiftId, tseClientId, tse, repo, seller, tracker, timeoutMs, idGen } =
+    opts
   if (cart.length === 0) throw new Error('empty cart')
 
   const lines = cart.map((l) => ({ product: l.product, qty: l.qty }))
@@ -48,14 +60,18 @@ export async function finalizeSale(
     mode === 'im_haus' ? l.product.mwstCodeImHaus : l.product.mwstCodeAusserHaus
   const rateFor = (code: string): number => breakdown.groups.find((g) => g.code === code)?.rate ?? 0
 
-  // Assina (pode lançar → caller bloqueia a venda; nada gravado)
-  const tseResult = await tse.sign({
-    clientId: tseClientId,
-    processType: 'Kassenbeleg-V1',
-    amountsByVatRate: breakdown.groups.map((g) => ({ rate: g.rate, gross: g.gross })),
-    paymentType: 'Bar',
-    grossTotal: breakdown.totalGross,
-  })
+  const outcome = await signWithFallback(
+    tse,
+    {
+      clientId: tseClientId,
+      processType: 'Kassenbeleg-V1',
+      amountsByVatRate: breakdown.groups.map((g) => ({ rate: g.rate, gross: g.gross })),
+      paymentType: 'Bar',
+      grossTotal: breakdown.totalGross,
+    },
+    { timeoutMs },
+  )
+  const tseResult = outcome.kind === 'signed' ? outcome.tse : null
 
   const receipt = buildReceipt({
     seller,
@@ -77,6 +93,19 @@ export async function finalizeSale(
     payment: { method: 'cash', amount: breakdown.totalGross },
     tse: tseResult,
   })
+
+  const tseTransaction = tseResult
+    ? {
+        tx_number: tseResult.txNumber,
+        signature_counter: tseResult.signatureCounter,
+        signature_value: tseResult.signatureValue,
+        log_time: tseResult.logTime,
+        process_type: tseResult.processType,
+        serial_number: tseResult.serialNumber,
+        public_key: tseResult.publicKey,
+        is_ausfall: false,
+      }
+    : { is_ausfall: true }
 
   const event = makeEnvelope(
     kasseId,
@@ -100,19 +129,25 @@ export async function finalizeSale(
       }),
       payment: { method: 'cash', amount: breakdown.totalGross },
       receipt: { qr_payload: receipt.qrPayload, format: 'digital' },
-      tse_transaction: {
-        tx_number: tseResult.txNumber,
-        signature_counter: tseResult.signatureCounter,
-        signature_value: tseResult.signatureValue,
-        log_time: tseResult.logTime,
-        process_type: tseResult.processType,
-        serial_number: tseResult.serialNumber,
-        public_key: tseResult.publicKey,
-      },
+      tse_transaction: tseTransaction,
     },
     idGen,
   )
 
-  repo.saveFinalizedSale(event, at.getTime())
-  return { event, receipt }
+  const now = at.getTime()
+  repo.saveFinalizedSale(event, now)
+
+  // Borda do período: emite started/ended uma única vez e persiste o estado.
+  const reason = outcome.kind === 'ausfall' ? outcome.reason : ''
+  for (const kind of tracker.record(outcome.kind, at.toISOString(), reason)) {
+    const env = makeAusfallEnvelope(
+      kasseId,
+      { event_type: kind, at: at.toISOString(), reason: kind === 'started' ? reason : undefined },
+      idGen,
+    )
+    repo.enqueueOutbox(env.client_event_id, JSON.stringify(env), now)
+  }
+  repo.setAusfallState(tracker.current)
+
+  return { event, receipt, outcome }
 }
