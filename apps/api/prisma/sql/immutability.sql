@@ -6,7 +6,8 @@
 --
 -- Tabelas fiscais (append-only): orders, order_items, payments, receipts,
 -- tse_transactions, audit_log, z_reports, sync_events, cash_movements,
--- tse_ausfall_log.
+-- tse_ausfall_log, bestellungen, bestellung_items.
+-- (Tische/Tischsessions são OPERACIONAIS/mutáveis — não entram aqui.)
 
 -- 1) Permissões do role de runtime ---------------------------------------------
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gelato_app;
@@ -14,7 +15,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gelato_app;
 
 REVOKE UPDATE, DELETE, TRUNCATE ON
   orders, order_items, payments, receipts, tse_transactions, audit_log, z_reports, sync_events,
-  cash_movements, tse_ausfall_log
+  cash_movements, tse_ausfall_log, bestellungen, bestellung_items
   FROM gelato_app;
 
 -- 2) Trigger append-only (defense-in-depth) ------------------------------------
@@ -30,7 +31,7 @@ BEGIN
   FOREACH t IN ARRAY ARRAY[
     'orders','order_items','payments','receipts',
     'tse_transactions','audit_log','z_reports','sync_events',
-    'cash_movements','tse_ausfall_log'
+    'cash_movements','tse_ausfall_log','bestellungen','bestellung_items'
   ]
   LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS %I_append_only ON %I;', t, t);

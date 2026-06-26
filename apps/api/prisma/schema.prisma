@@ -39,6 +39,7 @@ model Betriebsstaette {
 
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   kassen Kasse[]
+  tische Tisch[]
 
   @@map("betriebsstaetten")
 }
@@ -276,7 +277,8 @@ model Receipt {
 
 model TseTransaction {
   id               String    @id @default(cuid())
-  orderId          String    @unique
+  orderId          String?   @unique
+  bestellungId     String?   @unique
   tseClientId      String?
   txNumber         Int?
   signatureCounter Int?
@@ -287,9 +289,77 @@ model TseTransaction {
   publicKey        String?
   isAusfall        Boolean   @default(false)
 
-  order Order @relation(fields: [orderId], references: [id])
+  order      Order?      @relation(fields: [orderId], references: [id])
+  bestellung Bestellung? @relation(fields: [bestellungId], references: [id])
 
   @@map("tse_transactions")
+}
+
+model Tisch {
+  id                String   @id @default(cuid())
+  betriebsstaetteId String
+  name              String
+  seats             Int?
+  posX              Int?
+  posY              Int?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  betriebsstaette Betriebsstaette @relation(fields: [betriebsstaetteId], references: [id])
+  sessions        Tischsession[]
+
+  @@map("tische")
+}
+
+model Tischsession {
+  id       String    @id @default(cuid())
+  tischId  String
+  kasseId  String
+  status   String    @default("open") // open | paid | cancelled
+  openedBy String?
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+  orderId  String?   @unique
+
+  tisch        Tisch        @relation(fields: [tischId], references: [id])
+  bestellungen Bestellung[]
+
+  @@map("tischsessions")
+}
+
+model Bestellung {
+  id            String   @id @default(cuid())
+  clientEventId String   @unique
+  sessionId     String
+  kasseId       String
+  seqNr         Int
+  createdBy     String?
+  totalNet      Int
+  totalMwst     Int
+  totalGross    Int
+  createdAt     DateTime @default(now())
+
+  session        Tischsession     @relation(fields: [sessionId], references: [id])
+  items          BestellungItem[]
+  tseTransaction TseTransaction?
+
+  @@map("bestellungen")
+}
+
+model BestellungItem {
+  id           String  @id @default(cuid())
+  bestellungId String
+  productId    String
+  qty          Int
+  unitNet      Int
+  mwstRate     Decimal @db.Decimal(5, 4)
+  mwstCode     String
+  stornoOf     String?
+
+  bestellung Bestellung @relation(fields: [bestellungId], references: [id])
+
+  @@map("bestellung_items")
 }
 
 model TseAusfallLog {

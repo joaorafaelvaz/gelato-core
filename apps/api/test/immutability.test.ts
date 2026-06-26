@@ -66,6 +66,31 @@ async function insertAusfall(pool: Pool): Promise<string> {
   return id
 }
 
+async function insertBestellung(pool: Pool): Promise<{ bId: string; itemId: string }> {
+  const tischId = `t_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO tische (id, "betriebsstaetteId", name, active, "createdAt", "updatedAt") VALUES ($1,'demo-bs','T',true,now(),now())`,
+    [tischId],
+  )
+  const sId = `s_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO tischsessions (id, "tischId", "kasseId", status, "openedAt") VALUES ($1,$2,'demo-kasse','open',now())`,
+    [sId, tischId],
+  )
+  const bId = `b_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO bestellungen (id, "clientEventId", "sessionId", "kasseId", "seqNr", "totalNet", "totalMwst", "totalGross", "createdAt")
+     VALUES ($1,$1,$2,'demo-kasse',1,100,19,119,now())`,
+    [bId, sId],
+  )
+  const itemId = `bi_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO bestellung_items (id, "bestellungId", "productId", qty, "unitNet", "mwstRate", "mwstCode") VALUES ($1,$2,'p1',1,100,0.19,'standard_19')`,
+    [itemId, bId],
+  )
+  return { bId, itemId }
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -113,5 +138,14 @@ describe('fiscal immutability (DB-enforced)', () => {
       appPool.query(`UPDATE tse_ausfall_log SET reason='x' WHERE id=$1`, [id]),
     ).rejects.toThrow()
     await expect(appPool.query(`DELETE FROM tse_ausfall_log WHERE id=$1`, [id])).rejects.toThrow()
+  })
+
+  it('bestellungen + bestellung_items are append-only (operational tische/sessions stay mutable)', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const { bId, itemId } = await insertBestellung(appPool)
+    await expect(appPool.query(`UPDATE bestellungen SET "totalGross"=0 WHERE id=$1`, [bId])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM bestellungen WHERE id=$1`, [bId])).rejects.toThrow()
+    await expect(appPool.query(`UPDATE bestellung_items SET qty=0 WHERE id=$1`, [itemId])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM bestellung_items WHERE id=$1`, [itemId])).rejects.toThrow()
   })
 })
