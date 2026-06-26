@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('gelato', {
   drawer: () => ipcRenderer.invoke('drawer:open'),
   reportX: () => ipcRenderer.invoke('report:x'),
   reportZ: () => ipcRenderer.invoke('report:z'),
+  ausfallState: () => ipcRenderer.invoke('tse:ausfallState'),
 })

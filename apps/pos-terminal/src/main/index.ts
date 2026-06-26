@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'node:path'
 import { LocalRepo, finalizeSale, runOutboxOnce, HttpSyncClient, type CartLine } from '../index'
-import { FakeTseProvider, type TaxRate } from '@gelato/compliance'
+import { FakeTseProvider, AusfallTracker, type TaxRate } from '@gelato/compliance'
 import type { ConsumptionMode } from '@gelato/domain'
 
 const baseUrl = process.env.VITE_API_URL ?? 'http://127.0.0.1:3000'
@@ -13,6 +13,7 @@ let repo: LocalRepo
 let token = ''
 let rates: TaxRate[] = []
 let shiftId: string | null = null
+let ausfallTracker: AusfallTracker
 
 async function authedPost(path: string, body: unknown): Promise<unknown> {
   const res = await fetch(`${baseUrl}${path}`, {
@@ -82,7 +83,7 @@ function registerIpc(): void {
         },
         qty: c.qty,
       }))
-      const { receipt } = await finalizeSale({
+      const { receipt, outcome } = await finalizeSale({
         cart: lines,
         mode,
         at: new Date(),
@@ -93,8 +94,13 @@ function registerIpc(): void {
         tse,
         repo,
         seller: { name: 'Gelateria Demo' },
+        tracker: ausfallTracker,
       })
-      return { ok: true, receipt: { qrPayload: receipt.qrPayload, total: receipt.total } }
+      return {
+        ok: true,
+        receipt: { qrPayload: receipt.qrPayload, total: receipt.total },
+        isAusfall: outcome.kind === 'ausfall',
+      }
     } catch (e) {
       return { ok: false, error: String(e) }
     }
@@ -119,6 +125,7 @@ function registerIpc(): void {
   ipcMain.handle('drawer:open', async () => authedPost('/pos/drawer/open', {}))
   ipcMain.handle('report:x', async () => authedPost('/pos/reports/x', { kasse_id: KASSE_ID }))
   ipcMain.handle('report:z', async () => authedPost('/pos/reports/z', { kasse_id: KASSE_ID }))
+  ipcMain.handle('tse:ausfallState', () => ausfallTracker.current)
 }
 
 function createWindow(): void {
@@ -139,6 +146,7 @@ app
   .whenReady()
   .then(() => {
     repo = new LocalRepo(join(app.getPath('userData'), 'gelato.db'))
+    ausfallTracker = new AusfallTracker(repo.getAusfallState())
     registerIpc()
     createWindow()
     // Outbox: sincroniza a cada 5s quando há sessão (offline-first).

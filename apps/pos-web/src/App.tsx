@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import QRCode from 'qrcode'
-import { FakeTseProvider, type TaxRate } from '@gelato/compliance'
+import { FakeTseProvider, AusfallTracker, type TaxRate } from '@gelato/compliance'
 import { SUPPORTED_LOCALES } from '@gelato/i18n'
 import { IdbStore } from './idb-store'
 import { finalizeSale, runOutboxOnce, HttpSyncClient, type CartLine } from './sale'
@@ -24,6 +24,7 @@ type Mode = 'im_haus' | 'ausser_haus'
 const KASSE = 'demo-kasse'
 const store = new IdbStore()
 const tse = new FakeTseProvider({ serialNumber: 'WEB-SANDBOX' })
+let ausfallTracker = new AusfallTracker()
 const euro = (c: number): string =>
   (c / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
 const askCents = (label: string): number => Math.round(Number(window.prompt(label) ?? '0') * 100)
@@ -41,6 +42,14 @@ export function App() {
   const [qr, setQr] = useState<string | null>(null)
   const [report, setReport] = useState<string>('')
   const [msg, setMsg] = useState('')
+  const [ausfall, setAusfall] = useState(false)
+
+  useEffect(() => {
+    void store.getAusfallState().then((s) => {
+      ausfallTracker = new AusfallTracker(s)
+      setAusfall(s !== null)
+    })
+  }, [])
 
   useEffect(() => {
     if (!token) return
@@ -92,7 +101,7 @@ export function App() {
         qty: cart[p.id]!,
       }))
     if (items.length === 0) return
-    const { receipt } = await finalizeSale({
+    const { receipt, outcome } = await finalizeSale({
       cart: items,
       mode,
       at: new Date(),
@@ -103,8 +112,10 @@ export function App() {
       tse,
       store,
       seller: { name: 'Gelateria Demo (Web)' },
+      tracker: ausfallTracker,
     })
-    setQr(await QRCode.toDataURL(receipt.qrPayload))
+    setAusfall(outcome.kind === 'ausfall' || ausfallTracker.current !== null)
+    setQr(receipt.qrPayload ? await QRCode.toDataURL(receipt.qrPayload) : null)
     setCart({})
   }
 
@@ -153,7 +164,13 @@ export function App() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui', padding: 16, display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+    <>
+      {ausfall && (
+        <div style={{ background: '#b91c1c', color: 'white', padding: 8, fontFamily: 'system-ui' }}>
+          ⚠ TSE indisponível — vendas em modo Ausfall (sem assinatura). Documentado e sincronizado.
+        </div>
+      )}
+      <div style={{ fontFamily: 'system-ui', padding: 16, display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
@@ -185,8 +202,13 @@ export function App() {
         <button onClick={() => void close()} style={{ marginTop: 8 }}>Fechar turno</button>
         {report && <p style={{ fontSize: 13 }}>{report}</p>}
         <h3>{t('pos.receipt.title')} (QR)</h3>
-        {qr ? <img src={qr} alt="QR" style={{ width: '100%' }} /> : <p>—</p>}
+        {qr ? (
+          <img src={qr} alt="QR" style={{ width: '100%' }} />
+        ) : (
+          <p>{ausfall ? 'TSE-Ausfall — sem QR' : '—'}</p>
+        )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

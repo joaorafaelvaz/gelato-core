@@ -29,6 +29,7 @@ declare global {
       ): Promise<{
         ok: boolean
         receipt?: { qrPayload: string; total: { net: number; mwst: number; gross: number } }
+        isAusfall?: boolean
         error?: string
       }>
       shiftOpen(openingFloat: number): Promise<{ id: string }>
@@ -37,6 +38,7 @@ declare global {
       drawer(): Promise<unknown>
       reportX(): Promise<{ totals: RDayTotals }>
       reportZ(): Promise<{ seqNr: number; totals: RDayTotals }>
+      ausfallState(): Promise<{ startedAt: string; reason: string } | null>
     }
   }
 }

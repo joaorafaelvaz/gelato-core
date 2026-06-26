@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 
 type Product = {
@@ -25,6 +25,11 @@ export function App() {
   const [qr, setQr] = useState<string | null>(null)
   const [report, setReport] = useState('')
   const [msg, setMsg] = useState('')
+  const [ausfall, setAusfall] = useState(false)
+
+  useEffect(() => {
+    if (logged) void window.gelato.ausfallState().then((s) => setAusfall(s !== null))
+  }, [logged])
 
   async function login(): Promise<void> {
     const r = await window.gelato.loginPin('demo-kasse', pin)
@@ -54,7 +59,8 @@ export function App() {
       setMsg(r.error ?? 'erro')
       return
     }
-    setQr(await QRCode.toDataURL(r.receipt.qrPayload))
+    setAusfall(Boolean(r.isAusfall))
+    setQr(r.receipt.qrPayload ? await QRCode.toDataURL(r.receipt.qrPayload) : null)
     setCart({})
   }
 
@@ -99,7 +105,13 @@ export function App() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui', padding: 16, display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+    <>
+      {ausfall && (
+        <div style={{ background: '#b91c1c', color: 'white', padding: 8, fontFamily: 'system-ui' }}>
+          ⚠ TSE indisponível — vendas em modo Ausfall (sem assinatura). Documentado e sincronizado.
+        </div>
+      )}
+      <div style={{ fontFamily: 'system-ui', padding: 16, display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
       <div>
         <div style={{ marginBottom: 8 }}>
           <button onClick={() => setMode('im_haus')} disabled={mode === 'im_haus'}>Im Haus</button>
@@ -125,8 +137,13 @@ export function App() {
         <button onClick={() => void close()} style={{ marginTop: 8 }}>Fechar turno</button>
         {report && <p style={{ fontSize: 13 }}>{report}</p>}
         <h3>Recibo (QR)</h3>
-        {qr ? <img src={qr} alt="QR" style={{ width: '100%' }} /> : <p>—</p>}
+        {qr ? (
+          <img src={qr} alt="QR" style={{ width: '100%' }} />
+        ) : (
+          <p>{ausfall ? 'TSE-Ausfall — sem QR' : '—'}</p>
+        )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

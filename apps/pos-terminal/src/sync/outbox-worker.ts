@@ -1,4 +1,4 @@
-import type { SaleEvent } from '@gelato/domain'
+import type { PosEvent } from '@gelato/domain'
 import type { LocalRepo } from '../db/local-repo'
 
 export interface SyncResponse {
@@ -8,7 +8,7 @@ export interface SyncResponse {
 }
 
 export interface SyncClient {
-  post(event: SaleEvent): Promise<SyncResponse>
+  post(event: PosEvent): Promise<SyncResponse>
 }
 
 export interface OutboxRunResult {
@@ -32,7 +32,7 @@ export async function runOutboxOnce(
   let failed = 0
 
   for (const row of pending) {
-    const event = JSON.parse(row.payload) as SaleEvent
+    const event = JSON.parse(row.payload) as PosEvent
     try {
       const res = await client.post(event)
       if (res.ok || res.duplicate) {
@@ -58,7 +58,7 @@ export class HttpSyncClient implements SyncClient {
     private readonly token: string,
   ) {}
 
-  async post(event: SaleEvent): Promise<SyncResponse> {
+  async post(event: PosEvent): Promise<SyncResponse> {
     const res = await fetch(`${this.baseUrl}/pos/sync`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${this.token}` },
