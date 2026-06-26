@@ -6,6 +6,7 @@ import {
   openTable,
   addBestellung,
   payTable,
+  transferTable,
   type TableRow,
   type SessionView,
   type ApiProduct,
@@ -91,24 +92,43 @@ export function TischPanel({
     setSession(await getSession(token, session.id))
   }
 
-  async function pay(): Promise<void> {
-    if (!session || session.tab.totalGross === 0) return
+  const remainingGross = (): number => session?.remaining?.totalGross ?? session?.tab.totalGross ?? 0
+
+  /** Paga `amount` (parcial ou total). `amount` omitido = quita o restante. */
+  async function payAmount(amount?: number): Promise<void> {
+    if (!session) return
+    const pay = amount ?? remainingGross()
+    if (pay <= 0) return
     const outcome = await signWithFallback(tse, {
       clientId: 'c1',
       processType: 'Kassenbeleg-V1',
       amountsByVatRate: session.tab.byVatRate.map((g) => ({ rate: g.rate, gross: g.gross })),
       paymentType: 'Bar',
-      grossTotal: session.tab.totalGross,
+      grossTotal: pay,
     })
-    const tse_transaction =
-      outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
-    await payTable(token, session.id, {
+    const tse_transaction = outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
+    const r = await payTable(token, session.id, {
       client_event_id: crypto.randomUUID(),
-      payment: { method: 'cash', amount: session.tab.totalGross },
+      amount: pay,
+      payment: { method: 'cash', amount: pay },
       tse: tse_transaction,
     })
-    setMsg(`Mesa paga — ${euro(session.tab.totalGross)}`)
-    setSession(null)
+    if (r.settled) {
+      setMsg('Mesa quitada')
+      setSession(null)
+      refresh()
+    } else {
+      setMsg(`Pago ${euro(pay)} — resta ${euro(r.remainingGross)}`)
+      setSession(await getSession(token, session.id))
+    }
+  }
+
+  async function transfer(): Promise<void> {
+    if (!session) return
+    const target = window.prompt('Transferir para a mesa (id):')
+    if (!target) return
+    await transferTable(token, session.id, target)
+    setSession(await getSession(token, session.id))
     refresh()
   }
 
@@ -135,9 +155,17 @@ export function TischPanel({
               </button>
             ))}
           </div>
-          <button onClick={() => void pay()} style={{ marginTop: 8, padding: 8, width: '100%' }}>
-            Pagar (Kassenbeleg)
-          </button>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            <button onClick={() => void payAmount()} style={{ flex: 1, padding: 8 }}>
+              Pagar tudo
+            </button>
+            <button onClick={() => void payAmount(Math.ceil(remainingGross() / 2))} style={{ padding: 8 }}>
+              Split ÷2
+            </button>
+            <button onClick={() => void transfer()} style={{ padding: 8 }}>
+              Transferir
+            </button>
+          </div>
         </div>
       )}
       {msg && <p style={{ fontSize: 13 }}>{msg}</p>}

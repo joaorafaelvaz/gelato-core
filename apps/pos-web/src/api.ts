@@ -114,6 +114,7 @@ export interface SessionView {
   status: string
   orderId: string | null
   tab: TabState
+  remaining?: { totalGross: number }
 }
 
 export const listTables = (token: string, kasseId: string) =>
@@ -125,4 +126,6 @@ export const openTable = (token: string, tischId: string, kasseId: string) =>
 export const addBestellung = (token: string, id: string, event: unknown) =>
   authedPost<{ bestellungId: string; duplicate: boolean }>(`/pos/sessions/${id}/bestellung`, token, event)
 export const payTable = (token: string, id: string, body: unknown) =>
-  authedPost<{ orderId: string; duplicate: boolean }>(`/pos/sessions/${id}/pay`, token, body)
+  authedPost<{ orderId: string; settled: boolean; remainingGross: number; duplicate: boolean }>(`/pos/sessions/${id}/pay`, token, body)
+export const transferTable = (token: string, id: string, targetTischId: string) =>
+  authedPost<{ tischId: string }>(`/pos/sessions/${id}/transfer`, token, { target_tisch_id: targetTischId })
