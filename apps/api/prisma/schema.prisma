@@ -218,16 +218,18 @@ model Order {
   kasseId       String
   shiftId       String?
   mode          String // im_haus | ausser_haus
-  tableId       String?
-  status        String   @default("finalized")
-  totalNet      Int
-  totalMwst     Int
-  totalGross    Int
-  customerId    String?
-  ts            DateTime @default(now())
+  tableId        String?
+  tischSessionId String?
+  status         String   @default("finalized")
+  totalNet       Int
+  totalMwst      Int
+  totalGross     Int
+  customerId     String?
+  ts             DateTime @default(now())
 
   kasse          Kasse           @relation(fields: [kasseId], references: [id])
   shift          Shift?          @relation(fields: [shiftId], references: [id])
+  tischSession   Tischsession?   @relation(fields: [tischSessionId], references: [id])
   items          OrderItem[]
   payments       Payment[]
   receipt        Receipt?
@@ -324,6 +326,7 @@ model Tischsession {
 
   tisch        Tisch        @relation(fields: [tischId], references: [id])
   bestellungen Bestellung[]
+  orders       Order[]
 
   @@map("tischsessions")
 }

@@ -56,6 +56,7 @@ export class LedgerService {
           shiftId: p.order.shift_id,
           mode: p.order.mode,
           tableId: p.order.table_id,
+          tischSessionId: p.order.tisch_session_id,
           totalNet: p.order.total_net,
           totalMwst: p.order.total_mwst,
           totalGross: p.order.total_gross,
