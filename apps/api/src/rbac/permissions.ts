@@ -9,6 +9,8 @@ export const PERMISSIONS = [
   'pos.shift.close',
   'pos.report.x',
   'pos.report.z',
+  'pos.table.open',
+  'pos.table.view',
   // Produtos & receitas
   'product.view',
   'product.manage',
@@ -45,6 +47,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'pos.shift.open',
     'pos.shift.close',
     'pos.report.x',
+    'pos.table.open',
+    'pos.table.view',
     'product.view',
   ],
   lagerist: [

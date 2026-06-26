@@ -39,6 +39,18 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     create: { kasseId: KASSE_ID, provider: 'fiskaly', serialNr: 'SANDBOX' },
   })
 
+  // Mesas demo (Tisch — operacional). Tischplan visual entra na fatia 1a-4.
+  for (const [id, name] of [
+    ['tisch-1', 'Tisch 1'],
+    ['tisch-2', 'Tisch 2'],
+  ] as const) {
+    await prisma.tisch.upsert({
+      where: { id },
+      update: {},
+      create: { id, betriebsstaetteId: BS_ID, name },
+    })
+  }
+
   // Roles + role_permissions
   for (const [key, permKeys] of Object.entries(ROLE_PERMISSIONS)) {
     const role = await prisma.role.upsert({

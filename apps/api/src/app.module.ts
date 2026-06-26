@@ -11,6 +11,7 @@ import { OrdersModule } from './orders/orders.module'
 import { ShiftsModule } from './shifts/shifts.module'
 import { ReportsModule } from './reports/reports.module'
 import { ExportsModule } from './exports/exports.module'
+import { TablesModule } from './tables/tables.module'
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ExportsModule } from './exports/exports.module'
     ShiftsModule,
     ReportsModule,
     ExportsModule,
+    TablesModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
