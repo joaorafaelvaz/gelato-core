@@ -164,6 +164,28 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     update: {},
     create: { id: 'mod-sahne', productId: becher.id, name: 'extra Sahne', netCents: 50 },
   })
+
+  // Estoque (Ciclo 2a): 2 insumos demo + entrada inicial. Movimentos são
+  // append-only → inserir só uma vez (id fixo, create se ausente; nunca update).
+  await prisma.stockItem.upsert({
+    where: { id: 'stock-milch' },
+    update: {},
+    create: { id: 'stock-milch', tenantId: TENANT_ID, name: 'Milch', unit: 'ml', minStock: 2000 },
+  })
+  await prisma.stockItem.upsert({
+    where: { id: 'stock-zucker' },
+    update: {},
+    create: { id: 'stock-zucker', tenantId: TENANT_ID, name: 'Zucker', unit: 'g', minStock: 1000 },
+  })
+  for (const [id, stockItemId, qtyDelta] of [
+    ['mov-milch-init', 'stock-milch', 10000],
+    ['mov-zucker-init', 'stock-zucker', 5000],
+  ] as const) {
+    const seen = await prisma.stockMovement.findUnique({ where: { id } })
+    if (!seen) {
+      await prisma.stockMovement.create({ data: { id, tenantId: TENANT_ID, stockItemId, type: 'receive', qtyDelta } })
+    }
+  }
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {

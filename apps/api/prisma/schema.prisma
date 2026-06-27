@@ -464,3 +464,36 @@ model SyncEvent {
 
   @@map("sync_events")
 }
+
+// ---------- Estoque (Ciclo 2a) ----------
+
+model StockItem {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  unit      String // unidade-base: 'g' | 'ml' | 'Stück' ...
+  minStock  Int? // limiar p/ alertas (2d); quantidades inteiras na unidade-base
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movements StockMovement[]
+
+  @@map("stock_items")
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  tenantId    String
+  stockItemId String
+  type        String // 'receive' | 'adjust' | 'count'
+  qtyDelta    Int // inteiro assinado, unidade-base
+  reason      String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  stockItem StockItem @relation(fields: [stockItemId], references: [id])
+
+  @@index([tenantId, stockItemId])
+  @@map("stock_movements")
+}
