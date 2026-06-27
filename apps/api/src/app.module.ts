@@ -12,6 +12,7 @@ import { ShiftsModule } from './shifts/shifts.module'
 import { ReportsModule } from './reports/reports.module'
 import { ExportsModule } from './exports/exports.module'
 import { TablesModule } from './tables/tables.module'
+import { StockModule } from './stock/stock.module'
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { TablesModule } from './tables/tables.module'
     ReportsModule,
     ExportsModule,
     TablesModule,
+    StockModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
