@@ -176,6 +176,7 @@ model Product {
   category  ProductCategory?  @relation(fields: [categoryId], references: [id])
   variants  ProductVariant[]
   modifiers ProductModifier[]
+  recipes   Recipe[]
 
   @@map("products")
 }
@@ -202,7 +203,8 @@ model ProductVariant {
   sortOrder Int     @default(0)
   active    Boolean @default(true)
 
-  product Product @relation(fields: [productId], references: [id])
+  product Product  @relation(fields: [productId], references: [id])
+  recipes Recipe[]
 
   @@map("product_variants")
 }
@@ -477,7 +479,8 @@ model StockItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  movements StockMovement[]
+  movements         StockMovement[]
+  recipeIngredients RecipeIngredient[]
 
   @@map("stock_items")
 }
@@ -496,4 +499,36 @@ model StockMovement {
 
   @@index([tenantId, stockItemId])
   @@map("stock_movements")
+}
+
+// ---------- Receitas / BOM (Ciclo 2b) ----------
+
+model Recipe {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  variantId String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product     Product            @relation(fields: [productId], references: [id])
+  variant     ProductVariant?    @relation(fields: [variantId], references: [id])
+  ingredients RecipeIngredient[]
+
+  @@unique([productId, variantId])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id          String @id @default(cuid())
+  recipeId    String
+  stockItemId String
+  qty         Int // unidade-base do insumo, por 1 unidade vendida
+
+  recipe    Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  stockItem StockItem @relation(fields: [stockItemId], references: [id])
+
+  @@unique([recipeId, stockItemId])
+  @@map("recipe_ingredients")
 }

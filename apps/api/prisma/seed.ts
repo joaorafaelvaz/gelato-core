@@ -186,6 +186,29 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
       await prisma.stockMovement.create({ data: { id, tenantId: TENANT_ID, stockItemId, type: 'receive', qtyDelta } })
     }
   }
+
+  // Receitas/BOM (Ciclo 2b): Eisbecher S/M/L consumindo Milch (ml) + Zucker (g).
+  for (const [id, variantId, milch, zucker] of [
+    ['rec-becher-s', 'var-s', 100, 40],
+    ['rec-becher-m', 'var-m', 150, 60],
+    ['rec-becher-l', 'var-l', 200, 80],
+  ] as const) {
+    await prisma.recipe.upsert({
+      where: { id },
+      update: {},
+      create: { id, tenantId: TENANT_ID, productId: 'prod-eisbecher', variantId },
+    })
+    for (const [ingId, stockItemId, qty] of [
+      [`${id}-milch`, 'stock-milch', milch],
+      [`${id}-zucker`, 'stock-zucker', zucker],
+    ] as const) {
+      await prisma.recipeIngredient.upsert({
+        where: { id: ingId },
+        update: { qty },
+        create: { id: ingId, recipeId: id, stockItemId, qty },
+      })
+    }
+  }
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {
