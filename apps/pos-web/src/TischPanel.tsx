@@ -302,7 +302,11 @@ function Tischplan({
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number; x: number; y: number; moved: boolean } | null>(null)
 
   function down(e: React.PointerEvent, t: TableRow): void {
-    e.currentTarget.setPointerCapture(e.pointerId)
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // setPointerCapture pode rejeitar (ex.: pointer já liberado) — ignora.
+    }
     const rect = ref.current!.getBoundingClientRect()
     setDrag({ id: t.id, dx: e.clientX - rect.left - (t.posX ?? 0), dy: e.clientY - rect.top - (t.posY ?? 0), x: t.posX ?? 0, y: t.posY ?? 0, moved: false })
   }
