@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LOCALES } from '@gelato/i18n'
-import { apiGet, apiGetBlob, apiLogin, apiPost, type StockLevel } from './api'
+import { apiGet, apiGetBlob, apiLogin, apiPost, type StockLevel, type RecipeRow } from './api'
 
 interface Order {
   id: string
@@ -60,6 +60,7 @@ export function App() {
       <Sales token={token} />
       <Products token={token} />
       <Stock token={token} />
+      <Recipes token={token} />
       <Exports token={token} />
     </div>
   )
@@ -222,6 +223,39 @@ function Stock({ token }: { token: string }) {
           Contagem
         </button>
       </form>
+    </section>
+  )
+}
+
+function Recipes({ token }: { token: string }) {
+  const [recipes, setRecipes] = useState<RecipeRow[]>([])
+  useEffect(() => {
+    apiGet<RecipeRow[]>('/recipes', token)
+      .then(setRecipes)
+      .catch(() => setRecipes([]))
+  }, [token])
+
+  return (
+    <section style={{ marginTop: '2rem' }}>
+      <h2>Receitas</h2>
+      <ul>
+        {recipes.map((r) => (
+          <li key={r.id}>
+            <strong>
+              {r.productName}
+              {r.variantName ? ` (${r.variantName})` : ''}
+            </strong>
+            {!r.active && ' — inativa'}
+            <ul>
+              {r.ingredients.map((i) => (
+                <li key={i.stockItemId}>
+                  {i.qty} {i.unit} — {i.stockItemName}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
