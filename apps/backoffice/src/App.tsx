@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LOCALES } from '@gelato/i18n'
-import { apiGet, apiGetBlob, apiLogin, apiPost, type StockLevel, type RecipeRow } from './api'
+import { apiGet, apiGetBlob, apiLogin, apiPost, type StockLevel, type RecipeRow, type Availability } from './api'
 
 interface Order {
   id: string
@@ -229,10 +229,14 @@ function Stock({ token }: { token: string }) {
 
 function Recipes({ token }: { token: string }) {
   const [recipes, setRecipes] = useState<RecipeRow[]>([])
+  const [avail, setAvail] = useState<Record<string, number>>({})
   useEffect(() => {
     apiGet<RecipeRow[]>('/recipes', token)
       .then(setRecipes)
       .catch(() => setRecipes([]))
+    apiGet<Availability[]>('/recipes/availability', token)
+      .then((a) => setAvail(Object.fromEntries(a.map((x) => [x.recipeId, x.maxProducible]))))
+      .catch(() => setAvail({}))
   }, [token])
 
   return (
@@ -245,6 +249,7 @@ function Recipes({ token }: { token: string }) {
               {r.productName}
               {r.variantName ? ` (${r.variantName})` : ''}
             </strong>
+            {r.id in avail && ` — dá p/ ${avail[r.id]}`}
             {!r.active && ' — inativa'}
             <ul>
               {r.ingredients.map((i) => (

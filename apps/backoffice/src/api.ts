@@ -44,6 +44,11 @@ export interface RecipeRow {
   ingredients: { stockItemId: string; stockItemName: string; unit: string; qty: number }[]
 }
 
+export interface Availability {
+  recipeId: string
+  maxProducible: number
+}
+
 export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
