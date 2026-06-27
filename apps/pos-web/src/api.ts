@@ -107,7 +107,10 @@ export const reportZ = (token: string, kasseId: string) =>
 export interface TableRow {
   id: string
   name: string
+  posX?: number | null
+  posY?: number | null
   openSessionId: string | null
+  openTotalGross?: number | null
 }
 export interface TabState {
   lines: { productId: string; mwstCode: string; mwstRate: number; qty: number; net: number }[]
@@ -137,3 +140,11 @@ export const payTable = (token: string, id: string, body: unknown) =>
   authedPost<{ orderId: string; settled: boolean; remainingGross: number; duplicate: boolean }>(`/pos/sessions/${id}/pay`, token, body)
 export const transferTable = (token: string, id: string, targetTischId: string) =>
   authedPost<{ tischId: string }>(`/pos/sessions/${id}/transfer`, token, { target_tisch_id: targetTischId })
+export const updateTablePosition = async (token: string, id: string, x: number, y: number): Promise<void> => {
+  const res = await fetch(`${BASE}/pos/tables/${id}/position`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ pos_x: x, pos_y: y }),
+  })
+  if (!res.ok) throw new Error(`position -> ${res.status}`)
+}
