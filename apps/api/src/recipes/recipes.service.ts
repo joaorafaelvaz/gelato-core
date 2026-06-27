@@ -1,4 +1,5 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common'
+import { aggregateStock, maxProducible } from '@gelato/compliance'
 import { PrismaService } from '../prisma/prisma.service'
 
 interface IngredientInput {
@@ -25,6 +26,23 @@ export class RecipesService {
       variantName: r.variant?.name ?? null,
       active: r.active,
       ingredients: r.ingredients.map((i) => ({ stockItemId: i.stockItemId, stockItemName: i.stockItem.name, unit: i.stockItem.unit, qty: i.qty })),
+    }))
+  }
+
+  /** Disponibilidade por receita ativa: quantas unidades dá p/ fazer com o estoque atual. */
+  async availability(tenantId: string) {
+    const recipes = await this.prisma.recipe.findMany({
+      where: { tenantId, active: true },
+      include: { product: true, variant: true, ingredients: true },
+    })
+    const movements = await this.prisma.stockMovement.findMany({ where: { tenantId }, select: { stockItemId: true, qtyDelta: true } })
+    const stock = new Map(aggregateStock(movements).map((l) => [l.stockItemId, l.qty]))
+    return recipes.map((r) => ({
+      recipeId: r.id,
+      productId: r.productId,
+      productName: r.product.name,
+      variantName: r.variant?.name ?? null,
+      maxProducible: maxProducible(r.ingredients.map((i) => ({ stockItemId: i.stockItemId, qty: i.qty })), stock),
     }))
   }
 

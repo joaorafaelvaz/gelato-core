@@ -28,6 +28,12 @@ export class RecipesController {
     return this.recipes.list(req.user.tenant_id)
   }
 
+  @Get('availability')
+  @RequirePermission('recipe.view')
+  async availability(@Req() req: { user: JwtUser }) {
+    return this.recipes.availability(req.user.tenant_id)
+  }
+
   @Post()
   @RequirePermission('recipe.manage')
   async create(@Req() req: { user: JwtUser }, @Body() body: unknown) {

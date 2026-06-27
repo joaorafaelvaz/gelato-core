@@ -91,4 +91,14 @@ describe('Recipes (e2e)', () => {
     const rec = list.find((x) => x.id === id)!
     expect(rec.ingredients.map((i) => ({ stockItemId: i.stockItemId, qty: i.qty }))).toEqual([{ stockItemId: b, qty: 25 }])
   })
+
+  it('GET /recipes/availability returns maxProducible from current stock', async () => {
+    const milch = await newStock('ml')
+    const prod = await newProduct()
+    await post('/recipes', { product_id: prod, ingredients: [{ stock_item_id: milch, qty: 200 }] })
+    await post('/stock/receive', { stock_item_id: milch, qty: 1000 })
+    const list = (await (await get('/recipes/availability')).json()) as { productId: string; maxProducible: number }[]
+    const row = list.find((r) => r.productId === prod)!
+    expect(row.maxProducible).toBe(5) // floor(1000/200)
+  })
 })
