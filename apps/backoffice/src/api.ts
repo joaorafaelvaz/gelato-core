@@ -49,6 +49,15 @@ export interface Availability {
   maxProducible: number
 }
 
+export interface StockAlert {
+  id: string
+  name: string
+  unit: string
+  qty: number
+  minStock: number | null
+  state: 'low' | 'negative'
+}
+
 export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
