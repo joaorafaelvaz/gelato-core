@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LOCALES } from '@gelato/i18n'
-import { apiGet, apiGetBlob, apiLogin } from './api'
+import { apiGet, apiGetBlob, apiLogin, apiPost, type StockLevel } from './api'
 
 interface Order {
   id: string
@@ -59,6 +59,7 @@ export function App() {
       </header>
       <Sales token={token} />
       <Products token={token} />
+      <Stock token={token} />
       <Exports token={token} />
     </div>
   )
@@ -154,6 +155,73 @@ function Products({ token }: { token: string }) {
           </li>
         ))}
       </ul>
+    </section>
+  )
+}
+
+function Stock({ token }: { token: string }) {
+  const [levels, setLevels] = useState<StockLevel[]>([])
+  const [selected, setSelected] = useState('')
+  const [qty, setQty] = useState('')
+
+  const reload = (): void => {
+    apiGet<StockLevel[]>('/stock', token).then(setLevels).catch(() => setLevels([]))
+  }
+  useEffect(reload, [token])
+
+  async function receive(e: FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!selected || !qty) return
+    await apiPost('/stock/receive', token, { stock_item_id: selected, qty: Number(qty) })
+    setQty('')
+    reload()
+  }
+
+  async function count(): Promise<void> {
+    if (!selected || !qty) return
+    await apiPost('/stock/count', token, { stock_item_id: selected, counted: Number(qty) })
+    setQty('')
+    reload()
+  }
+
+  return (
+    <section style={{ marginTop: '2rem' }}>
+      <h2>Estoque</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Insumo</th>
+            <th>Unidade</th>
+            <th>Atual</th>
+            <th>Mín.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {levels.map((l) => (
+            <tr key={l.id} style={l.minStock != null && l.qty < l.minStock ? { color: '#b91c1c' } : undefined}>
+              <td>{l.name}</td>
+              <td>{l.unit}</td>
+              <td>{l.qty}</td>
+              <td>{l.minStock ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <form onSubmit={receive} style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+        <select value={selected} onChange={(e) => setSelected(e.target.value)}>
+          <option value="">— insumo —</option>
+          {levels.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+        <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="quantidade" />
+        <button type="submit">Entrada</button>
+        <button type="button" onClick={count}>
+          Contagem
+        </button>
+      </form>
     </section>
   )
 }

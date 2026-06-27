@@ -27,3 +27,21 @@ export async function apiGetBlob(path: string, token: string): Promise<Blob> {
   if (!res.ok) throw new Error(`${path} failed`)
   return res.blob()
 }
+
+export interface StockLevel {
+  id: string
+  name: string
+  unit: string
+  minStock: number | null
+  qty: number
+}
+
+export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`${path} failed`)
+  return res.json() as Promise<T>
+}
