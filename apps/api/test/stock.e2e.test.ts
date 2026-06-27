@@ -81,4 +81,26 @@ describe('Stock (e2e)', () => {
     expect((await post('/stock/receive', { stock_item_id: id, qty: 0 })).status).toBe(400)
     expect((await post('/stock/adjust', { stock_item_id: id, qty_delta: 0 })).status).toBe(400)
   })
+
+  it('GET /stock/alerts lists low and negative items, ordered by severity', async () => {
+    // item com minStock; recebe acima do mínimo (ok) → não aparece
+    const okId = ((await (await post('/stock/items', { name: `ok-${crypto.randomUUID().slice(0, 8)}`, unit: 'g', min_stock: 100 })).json()) as { id: string }).id
+    await post('/stock/receive', { stock_item_id: okId, qty: 150 })
+    // item baixo (qty 50 < min 100)
+    const lowId = ((await (await post('/stock/items', { name: `low-${crypto.randomUUID().slice(0, 8)}`, unit: 'g', min_stock: 100 })).json()) as { id: string }).id
+    await post('/stock/receive', { stock_item_id: lowId, qty: 50 })
+    // item negativo (ajuste para -10)
+    const negId = ((await (await post('/stock/items', { name: `neg-${crypto.randomUUID().slice(0, 8)}`, unit: 'g', min_stock: 100 })).json()) as { id: string }).id
+    await post('/stock/adjust', { stock_item_id: negId, qty_delta: -10 })
+
+    const alerts = (await (await get('/stock/alerts')).json()) as { id: string; state: string }[]
+    const byId = new Map(alerts.map((a) => [a.id, a.state]))
+    expect(byId.get(okId)).toBeUndefined() // ok não aparece
+    expect(byId.get(lowId)).toBe('low')
+    expect(byId.get(negId)).toBe('negative')
+    // o negativo vem antes do baixo
+    const idxNeg = alerts.findIndex((a) => a.id === negId)
+    const idxLow = alerts.findIndex((a) => a.id === lowId)
+    expect(idxNeg).toBeLessThan(idxLow)
+  })
 })

@@ -22,6 +22,12 @@ export class StockController {
     return this.stock.levels(req.user.tenant_id)
   }
 
+  @Get('alerts')
+  @RequirePermission('stock.view')
+  async alerts(@Req() req: { user: JwtUser }) {
+    return this.stock.alerts(req.user.tenant_id)
+  }
+
   @Post('items')
   @RequirePermission('stock.adjust')
   async createItem(@Req() req: { user: JwtUser }, @Body() body: unknown) {

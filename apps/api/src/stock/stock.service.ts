@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-import { aggregateStock } from '@gelato/compliance'
+import { aggregateStock, stockAlerts } from '@gelato/compliance'
 import { PrismaService } from '../prisma/prisma.service'
 
 @Injectable()
@@ -12,6 +12,11 @@ export class StockService {
     const movements = await this.prisma.stockMovement.findMany({ where: { tenantId }, select: { stockItemId: true, qtyDelta: true } })
     const qtyById = new Map(aggregateStock(movements).map((l) => [l.stockItemId, l.qty]))
     return items.map((i) => ({ id: i.id, name: i.name, unit: i.unit, minStock: i.minStock, qty: qtyById.get(i.id) ?? 0 }))
+  }
+
+  /** Insumos em alerta (baixo/negativo), derivado do nível atual. */
+  async alerts(tenantId: string) {
+    return stockAlerts(await this.levels(tenantId))
   }
 
   async createItem(tenantId: string, dto: { name: string; unit: string; min_stock?: number }) {
