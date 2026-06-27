@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query, Req, UseGuards, BadRequestException } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, Req, UseGuards, BadRequestException } from '@nestjs/common'
 import { z } from 'zod'
 import { BestellungEventSchema } from '@gelato/domain'
 import { TablesService } from './tables.service'
@@ -57,7 +57,17 @@ export class TablesController {
     if (!body?.target_tisch_id) throw new BadRequestException('target_tisch_id required')
     return this.tables.transfer(id, body.target_tisch_id, req.user.sub)
   }
+
+  @Patch('tables/:id/position')
+  @HttpCode(200)
+  @RequirePermission('pos.table.open')
+  async position(@Req() req: { user: JwtUser }, @Param('id') id: string, @Body() body: unknown) {
+    const dto = parseOrThrow(PositionDto, body)
+    return this.tables.updatePosition(id, dto.pos_x, dto.pos_y, req.user.tenant_id)
+  }
 }
+
+const PositionDto = z.object({ pos_x: z.number().int(), pos_y: z.number().int() })
 
 const PayDto = z.object({
   client_event_id: z.string().uuid(),

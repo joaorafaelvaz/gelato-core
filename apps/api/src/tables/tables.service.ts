@@ -12,7 +12,7 @@ export class TablesService {
     private readonly ledger: LedgerService,
   ) {}
 
-  /** Mesas da Betriebsstätte da Kasse + a sessão aberta (se houver). */
+  /** Mesas da Betriebsstätte da Kasse + posição (Tischplan) + total da conta aberta. */
   async listTables(kasseId: string) {
     const kasse = await this.prisma.kasse.findUnique({ where: { id: kasseId } })
     if (!kasse) throw new NotFoundException('kasse')
@@ -22,9 +22,27 @@ export class TablesService {
     })
     const open = await this.prisma.tischsession.findMany({
       where: { status: 'open', tischId: { in: tische.map((t) => t.id) } },
+      include: { bestellungen: { include: { items: true } } },
     })
-    const openByTisch = new Map(open.map((s) => [s.tischId, s.id]))
-    return tische.map((t) => ({ id: t.id, name: t.name, openSessionId: openByTisch.get(t.id) ?? null }))
+    const byTisch = new Map(
+      open.map((s) => {
+        const items: TabItemInput[] = s.bestellungen.flatMap((b) =>
+          b.items.map((i) => ({ productId: i.productId, qty: i.qty, unitNet: i.unitNet, mwstRate: Number(i.mwstRate), mwstCode: i.mwstCode })),
+        )
+        return [s.tischId, { sessionId: s.id, total: aggregateTab(items).totalGross }] as const
+      }),
+    )
+    return tische.map((t) => {
+      const o = byTisch.get(t.id)
+      return { id: t.id, name: t.name, posX: t.posX, posY: t.posY, openSessionId: o?.sessionId ?? null, openTotalGross: o?.total ?? null }
+    })
+  }
+
+  /** Reposiciona a mesa na planta (operacional/mutável — sem registro fiscal). */
+  async updatePosition(id: string, posX: number, posY: number, tenantId: string) {
+    const tisch = await this.prisma.tisch.findFirst({ where: { id, betriebsstaette: { tenantId } } })
+    if (!tisch) throw new NotFoundException('tisch')
+    return this.prisma.tisch.update({ where: { id }, data: { posX, posY } })
   }
 
   /** Abre uma conta na mesa (≤1 sessão aberta por mesa). */

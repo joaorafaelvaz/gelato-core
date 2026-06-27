@@ -177,6 +177,24 @@ describe('Tables / conta aberta (e2e)', () => {
     expect(item?.modifiers).toBeTruthy()
   })
 
+  it('lists tables with posX/posY + open total, and PATCH persists a position', async () => {
+    const before = (await (await get(`/pos/tables?kasse_id=demo-kasse`)).json()) as { id: string; posX: number | null; posY: number | null; openTotalGross: number | null }[]
+    const t1 = before.find((t) => t.id === 'tisch-1')!
+    expect(typeof t1.posX).toBe('number')
+    expect(typeof t1.posY).toBe('number')
+    const tisch = `tisch-${crypto.randomUUID().slice(0, 8)}`
+    await prisma.tisch.create({ data: { id: tisch, betriebsstaetteId: 'demo-bs', name: 'pos', posX: 10, posY: 10 } })
+    const res = await fetch(`${baseUrl}/pos/tables/${tisch}/position`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ pos_x: 123, pos_y: 234 }),
+    })
+    expect(res.status).toBe(200)
+    const moved = await prisma.tisch.findUnique({ where: { id: tisch } })
+    expect(moved?.posX).toBe(123)
+    expect(moved?.posY).toBe(234)
+  })
+
   it('transfers a whole tab to another free table (409 if target occupied)', async () => {
     const a = `tisch-${crypto.randomUUID().slice(0, 8)}`
     const b = `tisch-${crypto.randomUUID().slice(0, 8)}`

@@ -39,15 +39,17 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     create: { kasseId: KASSE_ID, provider: 'fiskaly', serialNr: 'SANDBOX' },
   })
 
-  // Mesas demo (Tisch — operacional). Tischplan visual entra na fatia 1a-4.
-  for (const [id, name] of [
-    ['tisch-1', 'Tisch 1'],
-    ['tisch-2', 'Tisch 2'],
+  // Mesas demo (Tisch — operacional) com posições iniciais p/ o Tischplan (1a-4).
+  for (const [id, name, posX, posY] of [
+    ['tisch-1', 'Tisch 1', 40, 40],
+    ['tisch-2', 'Tisch 2', 220, 40],
+    ['tisch-3', 'Tisch 3', 40, 180],
+    ['tisch-4', 'Tisch 4', 220, 180],
   ] as const) {
     await prisma.tisch.upsert({
       where: { id },
-      update: {},
-      create: { id, betriebsstaetteId: BS_ID, name },
+      update: { posX, posY },
+      create: { id, betriebsstaetteId: BS_ID, name, posX, posY },
     })
   }
 
