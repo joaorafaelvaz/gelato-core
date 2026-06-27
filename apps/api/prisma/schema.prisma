@@ -489,9 +489,11 @@ model StockMovement {
   id          String   @id @default(cuid())
   tenantId    String
   stockItemId String
-  type        String // 'receive' | 'adjust' | 'count'
+  type        String // 'receive' | 'adjust' | 'count' | 'consume'
   qtyDelta    Int // inteiro assinado, unidade-base
   reason      String?
+  refType     String? // 'bestellung' | 'order' (origem do consumo)
+  refId       String?
   createdBy   String?
   createdAt   DateTime @default(now())
 

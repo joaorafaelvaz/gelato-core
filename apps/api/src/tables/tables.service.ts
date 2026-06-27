@@ -4,6 +4,7 @@ import { aggregateTab, apportionSplit, paidByRate, type TabItemInput } from '@ge
 import type { BestellungEvent, SaleEvent } from '@gelato/domain'
 import { PrismaService } from '../prisma/prisma.service'
 import { LedgerService, type Actor } from '../pos/ledger.service'
+import { consumeForSale } from '../stock/consume'
 
 @Injectable()
 export class TablesService {
@@ -138,6 +139,13 @@ export class TablesService {
             },
           },
         },
+      })
+      // Decremento de estoque (2c): a Bestellung é o ponto de produção do salão.
+      await consumeForSale(tx, {
+        kasseId: event.kasse_id,
+        lines: event.items.map((i) => ({ productId: i.product_id, variantId: i.variant_id ?? null, qty: i.qty })),
+        refType: 'bestellung',
+        refId: b.id,
       })
       await tx.auditLog.create({
         data: { userId, action: 'pos.bestellung.create', entity: 'bestellung', entityId: b.id, payload: { sessionId, seqNr } },

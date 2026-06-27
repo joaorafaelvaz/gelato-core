@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
+import { consumeForSale } from '../stock/consume'
 import type { SaleEvent, AusfallEvent } from '@gelato/domain'
 
 export interface Actor {
@@ -112,6 +113,17 @@ export class LedgerService {
           device: actor.device,
         },
       })
+
+      // Decremento de estoque (2c): só venda DIRETA (sem sessão de mesa); o salão
+      // baixa na Bestellung. Linhas sem receita não baixam. Mesma transação → atômico.
+      if (p.order.tisch_session_id == null) {
+        await consumeForSale(tx, {
+          kasseId: event.kasse_id,
+          lines: p.items.map((i) => ({ productId: i.product_id, variantId: i.variant_id ?? null, qty: i.qty })),
+          refType: 'order',
+          refId: order.id,
+        })
+      }
 
       return { duplicate: false, orderId: order.id }
     })
