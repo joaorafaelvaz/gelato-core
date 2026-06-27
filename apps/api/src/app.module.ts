@@ -13,6 +13,7 @@ import { ReportsModule } from './reports/reports.module'
 import { ExportsModule } from './exports/exports.module'
 import { TablesModule } from './tables/tables.module'
 import { StockModule } from './stock/stock.module'
+import { RecipesModule } from './recipes/recipes.module'
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StockModule } from './stock/stock.module'
     ExportsModule,
     TablesModule,
     StockModule,
+    RecipesModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
