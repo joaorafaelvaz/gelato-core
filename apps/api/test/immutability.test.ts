@@ -91,6 +91,22 @@ async function insertBestellung(pool: Pool): Promise<{ bId: string; itemId: stri
   return { bId, itemId }
 }
 
+async function insertStockMovement(pool: Pool): Promise<string> {
+  const itemId = `si_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO stock_items (id, "tenantId", name, unit, active, "createdAt", "updatedAt")
+     VALUES ($1, 'demo-tenant', 'T', 'g', true, now(), now())`,
+    [itemId],
+  )
+  const id = `sm_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO stock_movements (id, "tenantId", "stockItemId", type, "qtyDelta", "createdAt")
+     VALUES ($1, 'demo-tenant', $2, 'receive', 100, now())`,
+    [id, itemId],
+  )
+  return id
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -147,5 +163,13 @@ describe('fiscal immutability (DB-enforced)', () => {
     await expect(appPool.query(`DELETE FROM bestellungen WHERE id=$1`, [bId])).rejects.toThrow()
     await expect(appPool.query(`UPDATE bestellung_items SET qty=0 WHERE id=$1`, [itemId])).rejects.toThrow()
     await expect(appPool.query(`DELETE FROM bestellung_items WHERE id=$1`, [itemId])).rejects.toThrow()
+  })
+
+  it('stock_movements is append-only (INSERT ok, UPDATE/DELETE blocked); stock_items stays mutable', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const id = await insertStockMovement(appPool)
+    expect(id).toBeTruthy()
+    await expect(appPool.query(`UPDATE stock_movements SET "qtyDelta"=0 WHERE id=$1`, [id])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM stock_movements WHERE id=$1`, [id])).rejects.toThrow()
   })
 })
