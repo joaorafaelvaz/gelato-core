@@ -50,6 +50,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'pos.table.open',
     'pos.table.view',
     'product.view',
+    'checklist.view',
+    'checklist.execute',
   ],
   lagerist: [
     'product.view',

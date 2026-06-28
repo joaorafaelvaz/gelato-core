@@ -566,3 +566,40 @@ model ChecklistTask {
 
   @@map("checklist_tasks")
 }
+
+model ChecklistRun {
+  id            String    @id @default(cuid())
+  tenantId      String
+  templateId    String
+  kasseId       String
+  executedBy    String?
+  clientEventId String    @unique
+  status        String // 'ok' | 'deviations'
+  startedAt     DateTime?
+  completedAt   DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  results ChecklistTaskResult[]
+
+  @@map("checklist_runs")
+}
+
+model ChecklistTaskResult {
+  id               String   @id @default(cuid())
+  runId            String
+  taskId           String
+  label            String // snapshot
+  type             String // snapshot
+  validMin         Int? // snapshot (decigraus)
+  validMax         Int? // snapshot
+  valueBool        Boolean?
+  valueNum         Int? // decigraus
+  valueText        String?
+  ok               Boolean
+  reading          String? // in_range | too_low | too_high
+  correctiveAction String?
+
+  run ChecklistRun @relation(fields: [runId], references: [id])
+
+  @@map("checklist_task_results")
+}
