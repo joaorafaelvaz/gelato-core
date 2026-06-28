@@ -65,4 +65,16 @@ export class ChecklistsController {
   async listRuns(@Req() req: { user: JwtUser }, @Query('template_id') templateId?: string) {
     return this.checklists.listRuns(req.user.tenant_id, templateId)
   }
+
+  @Get('status')
+  @RequirePermission('checklist.view')
+  async status(@Req() req: { user: JwtUser }) {
+    return this.checklists.status(req.user.tenant_id)
+  }
+
+  @Get('deviations')
+  @RequirePermission('checklist.view')
+  async deviations(@Req() req: { user: JwtUser }, @Query('from') from?: string, @Query('to') to?: string) {
+    return this.checklists.deviations(req.user.tenant_id, from, to)
+  }
 }

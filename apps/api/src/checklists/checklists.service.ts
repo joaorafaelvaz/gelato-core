@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
-import { isValidTaskDefinition, evaluateResult, type ChecklistTaskType } from '@gelato/compliance'
+import { isValidTaskDefinition, evaluateResult, isOverdue, type ChecklistTaskType } from '@gelato/compliance'
 import { PrismaService } from '../prisma/prisma.service'
 
 interface TaskInput {
@@ -74,6 +74,45 @@ export class ChecklistsService {
     if (dto.active !== undefined) data.active = dto.active
     if (Object.keys(data).length > 0) await this.prisma.checklistTemplate.update({ where: { id }, data })
     return { id }
+  }
+
+  /** Painel: por template ativo, último run + se está atrasado (recorrência). Derivado. */
+  async status(tenantId: string) {
+    const templates = await this.prisma.checklistTemplate.findMany({ where: { tenantId, active: true }, orderBy: { name: 'asc' } })
+    const now = Date.now()
+    const out: { templateId: string; name: string; recurrence: string; lastRunAt: Date | null; lastStatus: string | null; overdue: boolean }[] = []
+    for (const t of templates) {
+      const last = await this.prisma.checklistRun.findFirst({ where: { tenantId, templateId: t.id }, orderBy: { completedAt: 'desc' } })
+      out.push({
+        templateId: t.id,
+        name: t.name,
+        recurrence: t.recurrence,
+        lastRunAt: last?.completedAt ?? null,
+        lastStatus: last?.status ?? null,
+        overdue: isOverdue(t.recurrence, last ? last.completedAt.getTime() : null, now),
+      })
+    }
+    return out
+  }
+
+  /** Log de auditoria: todos os resultados não-ok (com ação corretiva). Derivado. */
+  async deviations(tenantId: string, from?: string, to?: string) {
+    const completedAt = from || to ? { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } : undefined
+    const results = await this.prisma.checklistTaskResult.findMany({
+      where: { ok: false, run: { tenantId, ...(completedAt ? { completedAt } : {}) } },
+      include: { run: true },
+      orderBy: { run: { completedAt: 'desc' } },
+    })
+    return results.map((r) => ({
+      runId: r.runId,
+      templateId: r.run.templateId,
+      completedAt: r.run.completedAt,
+      label: r.label,
+      type: r.type,
+      valueNum: r.valueNum,
+      reading: r.reading,
+      correctiveAction: r.correctiveAction,
+    }))
   }
 
   async listRuns(tenantId: string, templateId?: string) {
