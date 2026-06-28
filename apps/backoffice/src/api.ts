@@ -74,6 +74,25 @@ export interface ChecklistRunRow {
   results: { label: string; type: string; ok: boolean; reading: string | null }[]
 }
 
+export interface ChecklistStatusRow {
+  templateId: string
+  name: string
+  recurrence: string
+  lastRunAt: string | null
+  lastStatus: string | null
+  overdue: boolean
+}
+export interface ChecklistDeviationRow {
+  runId: string
+  templateId: string
+  completedAt: string
+  label: string
+  type: string
+  valueNum: number | null
+  reading: string | null
+  correctiveAction: string | null
+}
+
 export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
