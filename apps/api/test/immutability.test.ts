@@ -107,6 +107,21 @@ async function insertStockMovement(pool: Pool): Promise<string> {
   return id
 }
 
+async function insertChecklistRun(pool: Pool): Promise<{ runId: string; resultId: string }> {
+  const runId = `cr_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO checklist_runs (id, "tenantId", "templateId", "kasseId", "clientEventId", status, "completedAt", "createdAt")
+     VALUES ($1, 'demo-tenant', 'tpl-haccp-daily', 'demo-kasse', $1, 'ok', now(), now())`,
+    [runId],
+  )
+  const resultId = `ctr_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO checklist_task_results (id, "runId", "taskId", label, type, ok) VALUES ($1, $2, 'task-x', 'L', 'boolean', true)`,
+    [resultId, runId],
+  )
+  return { runId, resultId }
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -171,5 +186,14 @@ describe('fiscal immutability (DB-enforced)', () => {
     expect(id).toBeTruthy()
     await expect(appPool.query(`UPDATE stock_movements SET "qtyDelta"=0 WHERE id=$1`, [id])).rejects.toThrow()
     await expect(appPool.query(`DELETE FROM stock_movements WHERE id=$1`, [id])).rejects.toThrow()
+  })
+
+  it('checklist_runs + results are append-only (INSERT ok, UPDATE/DELETE blocked)', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const { runId, resultId } = await insertChecklistRun(appPool)
+    await expect(appPool.query(`UPDATE checklist_runs SET status='x' WHERE id=$1`, [runId])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM checklist_runs WHERE id=$1`, [runId])).rejects.toThrow()
+    await expect(appPool.query(`UPDATE checklist_task_results SET ok=false WHERE id=$1`, [resultId])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM checklist_task_results WHERE id=$1`, [resultId])).rejects.toThrow()
   })
 })
