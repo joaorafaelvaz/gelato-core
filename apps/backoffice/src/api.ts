@@ -58,6 +58,14 @@ export interface StockAlert {
   state: 'low' | 'negative'
 }
 
+export interface ChecklistTemplateRow {
+  id: string
+  name: string
+  recurrence: string
+  active: boolean
+  tasks: { id: string; label: string; type: string; validMin: number | null; validMax: number | null }[]
+}
+
 export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',

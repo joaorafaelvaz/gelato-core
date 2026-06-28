@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LOCALES } from '@gelato/i18n'
-import { apiGet, apiGetBlob, apiLogin, apiPost, type StockLevel, type RecipeRow, type Availability, type StockAlert } from './api'
+import { apiGet, apiGetBlob, apiLogin, apiPost, type StockLevel, type RecipeRow, type Availability, type StockAlert, type ChecklistTemplateRow } from './api'
 
 interface Order {
   id: string
@@ -61,6 +61,7 @@ export function App() {
       <Products token={token} />
       <Stock token={token} />
       <Recipes token={token} />
+      <Checklists token={token} />
       <Exports token={token} />
     </div>
   )
@@ -268,6 +269,43 @@ function Recipes({ token }: { token: string }) {
               {r.ingredients.map((i) => (
                 <li key={i.stockItemId}>
                   {i.qty} {i.unit} — {i.stockItemName}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function fmtRange(min: number | null, max: number | null): string {
+  if (min == null || max == null) return ''
+  const c = (d: number) => `${d < 0 ? '-' : ''}${Math.floor(Math.abs(d) / 10)},${Math.abs(d) % 10}`
+  return ` (${c(min)}…${c(max)} °C)`
+}
+
+function Checklists({ token }: { token: string }) {
+  const [templates, setTemplates] = useState<ChecklistTemplateRow[]>([])
+  useEffect(() => {
+    apiGet<ChecklistTemplateRow[]>('/checklists/templates', token)
+      .then(setTemplates)
+      .catch(() => setTemplates([]))
+  }, [token])
+
+  return (
+    <section style={{ marginTop: '2rem' }}>
+      <h2>Checklists (HACCP)</h2>
+      <ul>
+        {templates.map((tpl) => (
+          <li key={tpl.id}>
+            <strong>{tpl.name}</strong> — {tpl.recurrence}
+            {!tpl.active && ' (inativo)'}
+            <ul>
+              {tpl.tasks.map((t) => (
+                <li key={t.id}>
+                  {t.label} [{t.type}]
+                  {t.type === 'temperature' && fmtRange(t.validMin, t.validMax)}
                 </li>
               ))}
             </ul>
