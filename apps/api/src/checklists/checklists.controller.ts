@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common'
 import { z } from 'zod'
 import { ChecklistsService } from './checklists.service'
 import { JwtAuthGuard, type JwtUser } from '../auth/jwt-auth.guard'
@@ -15,6 +15,20 @@ const Task = z.object({
 })
 const CreateDto = z.object({ name: z.string().min(1), recurrence: z.string().optional(), tasks: z.array(Task).min(1) })
 const UpdateDto = z.object({ name: z.string().min(1).optional(), recurrence: z.string().optional(), active: z.boolean().optional(), tasks: z.array(Task).min(1).optional() })
+
+const RunResult = z.object({
+  task_id: z.string().min(1),
+  value_bool: z.boolean().nullish(),
+  value_num: z.number().int().nullish(),
+  value_text: z.string().nullish(),
+  corrective_action: z.string().nullish(),
+})
+const RunDto = z.object({
+  client_event_id: z.string().uuid(),
+  template_id: z.string().min(1),
+  kasse_id: z.string().min(1),
+  results: z.array(RunResult).min(1),
+})
 
 @Controller('checklists')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -38,5 +52,17 @@ export class ChecklistsController {
   @RequirePermission('checklist.manage')
   async update(@Req() req: { user: JwtUser }, @Param('id') id: string, @Body() body: unknown) {
     return this.checklists.update(req.user.tenant_id, id, parseOrThrow(UpdateDto, body))
+  }
+
+  @Post('runs')
+  @RequirePermission('checklist.execute')
+  async submitRun(@Req() req: { user: JwtUser }, @Body() body: unknown) {
+    return this.checklists.submitRun(req.user.tenant_id, parseOrThrow(RunDto, body), req.user.sub)
+  }
+
+  @Get('runs')
+  @RequirePermission('checklist.view')
+  async listRuns(@Req() req: { user: JwtUser }, @Query('template_id') templateId?: string) {
+    return this.checklists.listRuns(req.user.tenant_id, templateId)
   }
 }
