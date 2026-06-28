@@ -66,6 +66,14 @@ export interface ChecklistTemplateRow {
   tasks: { id: string; label: string; type: string; validMin: number | null; validMax: number | null }[]
 }
 
+export interface ChecklistRunRow {
+  id: string
+  templateId: string
+  status: string
+  completedAt: string
+  results: { label: string; type: string; ok: boolean; reading: string | null }[]
+}
+
 export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
