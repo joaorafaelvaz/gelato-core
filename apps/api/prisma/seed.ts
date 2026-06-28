@@ -209,6 +209,27 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
       })
     }
   }
+
+  // Checklist/HACCP (Ciclo 3a): template diário demo (higiene + temperatura).
+  await prisma.checklistTemplate.upsert({
+    where: { id: 'tpl-haccp-daily' },
+    update: {},
+    create: { id: 'tpl-haccp-daily', tenantId: TENANT_ID, name: 'Tägliche Hygiene & Temperatur', recurrence: 'daily' },
+  })
+  const checklistTasks: [string, string, string, number | null, number | null, number][] = [
+    ['task-hands', 'Hände gewaschen?', 'boolean', null, null, 1],
+    ['task-vitrine', 'Vitrine gereinigt?', 'boolean', null, null, 2],
+    ['task-tk', 'Tiefkühltruhe', 'temperature', -2200, -1800, 3],
+    ['task-kv', 'Kühlvitrine', 'temperature', 200, 700, 4],
+    ['task-notes', 'Bemerkungen', 'text', null, null, 5],
+  ]
+  for (const [id, label, type, validMin, validMax, sortOrder] of checklistTasks) {
+    await prisma.checklistTask.upsert({
+      where: { id },
+      update: { label, type, validMin, validMax, sortOrder },
+      create: { id, templateId: 'tpl-haccp-daily', label, type, validMin, validMax, sortOrder },
+    })
+  }
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {

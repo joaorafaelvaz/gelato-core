@@ -534,3 +534,35 @@ model RecipeIngredient {
   @@unique([recipeId, stockItemId])
   @@map("recipe_ingredients")
 }
+
+// ---------- Checklist / HACCP (Ciclo 3a) ----------
+
+model ChecklistTemplate {
+  id         String   @id @default(cuid())
+  tenantId   String
+  name       String
+  recurrence String   @default("daily") // daily | weekly | per_shift | on_event (informativo; scheduler = 3c)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tasks ChecklistTask[]
+
+  @@map("checklist_templates")
+}
+
+model ChecklistTask {
+  id         String  @id @default(cuid())
+  templateId String
+  label      String
+  type       String // 'boolean' | 'temperature' | 'text'
+  validMin   Int? // decigraus (°C×10), só p/ temperature
+  validMax   Int?
+  required   Boolean @default(true)
+  sortOrder  Int     @default(0)
+  active     Boolean @default(true)
+
+  template ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_tasks")
+}
