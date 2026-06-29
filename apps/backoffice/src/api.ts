@@ -93,6 +93,15 @@ export interface ChecklistDeviationRow {
   correctiveAction: string | null
 }
 
+export interface CustomerRow {
+  id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  anonymizedAt: string | null
+  consents: Record<string, string>
+}
+
 export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
