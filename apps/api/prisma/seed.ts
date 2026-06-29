@@ -230,6 +230,13 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
       create: { id, templateId: 'tpl-haccp-daily', label, type, validMin, validMax, sortOrder },
     })
   }
+
+  // CRM/DSGVO (Ciclo 4a): termo de consentimento demo (email_marketing v1).
+  await prisma.consentVersion.upsert({
+    where: { tenantId_purpose_version: { tenantId: TENANT_ID, purpose: 'email_marketing', version: 1 } },
+    update: {},
+    create: { tenantId: TENANT_ID, purpose: 'email_marketing', version: 1, text: 'Ich willige in den Erhalt von E-Mail-Werbung ein. Widerruf jederzeit möglich.', active: true },
+  })
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {

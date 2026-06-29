@@ -603,3 +603,50 @@ model ChecklistTaskResult {
 
   @@map("checklist_task_results")
 }
+
+// ---------- CRM + Consentimento DSGVO (Ciclo 4a) ----------
+
+model Customer {
+  id           String    @id @default(cuid())
+  tenantId     String
+  name         String?
+  email        String?
+  phone        String?
+  anonymizedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  consents ConsentRecord[]
+
+  @@map("customers")
+}
+
+model ConsentVersion {
+  id        String   @id @default(cuid())
+  tenantId  String
+  purpose   String // 'email_marketing' | 'sms_marketing' ...
+  version   Int
+  text      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, purpose, version])
+  @@map("consent_versions")
+}
+
+model ConsentRecord {
+  id           String   @id @default(cuid())
+  tenantId     String
+  customerId   String
+  purpose      String
+  version      Int      @default(0) // snapshot da ConsentVersion (0 p/ withdrawn)
+  textSnapshot String   @default("") // snapshot do texto do termo
+  action       String // 'granted' | 'withdrawn'
+  at           DateTime @default(now())
+  source       String?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([tenantId, customerId])
+  @@map("consent_records")
+}
