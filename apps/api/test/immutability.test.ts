@@ -137,6 +137,20 @@ async function insertConsentRecord(pool: Pool): Promise<string> {
   return id
 }
 
+async function insertLoyaltyEntry(pool: Pool): Promise<string> {
+  const custId = `lc_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO customers (id, "tenantId", email, "createdAt", "updatedAt") VALUES ($1, 'demo-tenant', 'l@x.de', now(), now())`,
+    [custId],
+  )
+  const id = `le_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO loyalty_entries (id, "tenantId", "customerId", kind, points, stamps, at) VALUES ($1, 'demo-tenant', $2, 'earn', 10, 1, now())`,
+    [id, custId],
+  )
+  return id
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -217,5 +231,12 @@ describe('fiscal immutability (DB-enforced)', () => {
     const id = await insertConsentRecord(appPool)
     await expect(appPool.query(`UPDATE consent_records SET action='withdrawn' WHERE id=$1`, [id])).rejects.toThrow()
     await expect(appPool.query(`DELETE FROM consent_records WHERE id=$1`, [id])).rejects.toThrow()
+  })
+
+  it('loyalty_entries is append-only (INSERT ok, UPDATE/DELETE blocked)', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const id = await insertLoyaltyEntry(appPool)
+    await expect(appPool.query(`UPDATE loyalty_entries SET points=0 WHERE id=$1`, [id])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM loyalty_entries WHERE id=$1`, [id])).rejects.toThrow()
   })
 })
