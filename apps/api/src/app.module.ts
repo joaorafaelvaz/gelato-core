@@ -16,6 +16,7 @@ import { StockModule } from './stock/stock.module'
 import { RecipesModule } from './recipes/recipes.module'
 import { ChecklistsModule } from './checklists/checklists.module'
 import { CustomersModule } from './customers/customers.module'
+import { LoyaltyModule } from './loyalty/loyalty.module'
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CustomersModule } from './customers/customers.module'
     RecipesModule,
     ChecklistsModule,
     CustomersModule,
+    LoyaltyModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],

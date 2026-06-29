@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { consumeForSale } from '../stock/consume'
+import { earnLoyalty } from '../loyalty/earn'
 import type { SaleEvent, AusfallEvent } from '@gelato/domain'
 
 export interface Actor {
@@ -122,6 +123,17 @@ export class LedgerService {
           lines: p.items.map((i) => ({ productId: i.product_id, variantId: i.variant_id ?? null, qty: i.qty })),
           refType: 'order',
           refId: order.id,
+        })
+      }
+
+      // Fidelidade (4b): ganho na venda quando há cliente (vendas diretas + pagamentos com cliente).
+      if (p.order.customer_id) {
+        await earnLoyalty(tx, {
+          kasseId: event.kasse_id,
+          customerId: p.order.customer_id,
+          grossCents: p.order.total_gross,
+          itemCount: p.items.reduce((s, i) => s + i.qty, 0),
+          orderId: order.id,
         })
       }
 
