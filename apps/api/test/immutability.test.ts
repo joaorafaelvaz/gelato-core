@@ -151,6 +151,20 @@ async function insertLoyaltyEntry(pool: Pool): Promise<string> {
   return id
 }
 
+async function insertVoucherRedemption(pool: Pool): Promise<string> {
+  const vid = `vc_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO vouchers (id, "tenantId", code, type, value, active, "createdAt") VALUES ($1, 'demo-tenant', $1, 'percent', 10, true, now())`,
+    [vid],
+  )
+  const id = `vr_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO voucher_redemptions (id, "tenantId", "voucherId", "discountCents", at) VALUES ($1, 'demo-tenant', $2, 119, now())`,
+    [id, vid],
+  )
+  return id
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -238,5 +252,12 @@ describe('fiscal immutability (DB-enforced)', () => {
     const id = await insertLoyaltyEntry(appPool)
     await expect(appPool.query(`UPDATE loyalty_entries SET points=0 WHERE id=$1`, [id])).rejects.toThrow()
     await expect(appPool.query(`DELETE FROM loyalty_entries WHERE id=$1`, [id])).rejects.toThrow()
+  })
+
+  it('voucher_redemptions is append-only (INSERT ok, UPDATE/DELETE blocked); vouchers stays mutable', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const id = await insertVoucherRedemption(appPool)
+    await expect(appPool.query(`UPDATE voucher_redemptions SET "discountCents"=0 WHERE id=$1`, [id])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM voucher_redemptions WHERE id=$1`, [id])).rejects.toThrow()
   })
 })
