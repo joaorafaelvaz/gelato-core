@@ -102,6 +102,26 @@ export interface CustomerRow {
   consents: Record<string, string>
 }
 
+export interface LoyaltyProgram {
+  pointsPerEuro: number
+  stampsPerItem: number
+  active: boolean
+}
+export interface LoyaltyView {
+  balance: { points: number; stamps: number }
+  entries: { kind: string; points: number; stamps: number; at: string }[]
+}
+
+export async function apiPut<T>(path: string, token: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`${path} failed`)
+  return res.json() as Promise<T>
+}
+
 export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
