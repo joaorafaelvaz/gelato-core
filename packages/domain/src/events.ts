@@ -13,6 +13,7 @@ export const OrderSchema = z.object({
   table_id: z.string().optional(),
   tisch_session_id: z.string().optional(),
   customer_id: z.string().optional(),
+  voucher_code: z.string().optional(),
 })
 
 /** Snapshot de um modificador aplicado (capturado no momento da venda). */

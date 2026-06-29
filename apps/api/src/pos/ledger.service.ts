@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { consumeForSale } from '../stock/consume'
 import { earnLoyalty } from '../loyalty/earn'
+import { recordVoucherRedemption } from '../vouchers/redeem'
 import type { SaleEvent, AusfallEvent } from '@gelato/domain'
 
 export interface Actor {
@@ -134,6 +135,17 @@ export class LedgerService {
           grossCents: p.order.total_gross,
           itemCount: p.items.reduce((s, i) => s + i.qty, 0),
           orderId: order.id,
+        })
+      }
+
+      // Voucher (4c): trilha de resgate quando a venda traz um código.
+      if (p.order.voucher_code) {
+        await recordVoucherRedemption(tx, {
+          kasseId: event.kasse_id,
+          code: p.order.voucher_code,
+          orderId: order.id,
+          customerId: p.order.customer_id,
+          items: p.items.map((i) => ({ unit_net: i.unit_net, qty: i.qty, mwst_rate: i.mwst_rate })),
         })
       }
 

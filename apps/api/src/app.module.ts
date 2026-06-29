@@ -17,6 +17,7 @@ import { RecipesModule } from './recipes/recipes.module'
 import { ChecklistsModule } from './checklists/checklists.module'
 import { CustomersModule } from './customers/customers.module'
 import { LoyaltyModule } from './loyalty/loyalty.module'
+import { VouchersModule } from './vouchers/vouchers.module'
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module'
     ChecklistsModule,
     CustomersModule,
     LoyaltyModule,
+    VouchersModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
