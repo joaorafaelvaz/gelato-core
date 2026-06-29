@@ -244,6 +244,13 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     update: {},
     create: { tenantId: TENANT_ID, pointsPerEuro: 1, stampsPerItem: 1, active: true },
   })
+
+  // Vouchers (Ciclo 4c): cupom demo SOMMER10 (10%).
+  await prisma.voucher.upsert({
+    where: { tenantId_code: { tenantId: TENANT_ID, code: 'SOMMER10' } },
+    update: {},
+    create: { tenantId: TENANT_ID, code: 'SOMMER10', type: 'percent', value: 10, maxUses: 100, active: true },
+  })
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {

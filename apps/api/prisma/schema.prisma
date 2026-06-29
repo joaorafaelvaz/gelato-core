@@ -683,3 +683,38 @@ model LoyaltyEntry {
   @@index([tenantId, customerId])
   @@map("loyalty_entries")
 }
+
+// ---------- Vouchers (Ciclo 4c) ----------
+
+model Voucher {
+  id        String    @id @default(cuid())
+  tenantId  String
+  code      String
+  type      String // 'percent' | 'fixed'
+  value     Int
+  maxUses   Int?
+  validFrom DateTime?
+  validTo   DateTime?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  redemptions VoucherRedemption[]
+
+  @@unique([tenantId, code])
+  @@map("vouchers")
+}
+
+model VoucherRedemption {
+  id            String   @id @default(cuid())
+  tenantId      String
+  voucherId     String
+  orderId       String?
+  customerId    String?
+  discountCents Int      @default(0)
+  at            DateTime @default(now())
+
+  voucher Voucher @relation(fields: [voucherId], references: [id])
+
+  @@index([tenantId, voucherId])
+  @@map("voucher_redemptions")
+}
