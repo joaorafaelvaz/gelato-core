@@ -616,7 +616,8 @@ model Customer {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  consents ConsentRecord[]
+  consents       ConsentRecord[]
+  loyaltyEntries LoyaltyEntry[]
 
   @@map("customers")
 }
@@ -649,4 +650,36 @@ model ConsentRecord {
 
   @@index([tenantId, customerId])
   @@map("consent_records")
+}
+
+// ---------- Loyalty (Ciclo 4b) ----------
+
+model LoyaltyProgram {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  pointsPerEuro Int      @default(0)
+  stampsPerItem Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("loyalty_programs")
+}
+
+model LoyaltyEntry {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  kind       String // 'earn' | 'redeem' | 'adjust'
+  points     Int      @default(0) // delta assinado
+  stamps     Int      @default(0) // delta assinado
+  refType    String?
+  refId      String?
+  reason     String?
+  at         DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([tenantId, customerId])
+  @@map("loyalty_entries")
 }

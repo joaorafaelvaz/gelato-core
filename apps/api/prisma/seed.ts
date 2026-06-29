@@ -237,6 +237,13 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     update: {},
     create: { tenantId: TENANT_ID, purpose: 'email_marketing', version: 1, text: 'Ich willige in den Erhalt von E-Mail-Werbung ein. Widerruf jederzeit möglich.', active: true },
   })
+
+  // Loyalty (Ciclo 4b): programa demo (1 ponto/€, 1 carimbo/item).
+  await prisma.loyaltyProgram.upsert({
+    where: { tenantId: TENANT_ID },
+    update: {},
+    create: { tenantId: TENANT_ID, pointsPerEuro: 1, stampsPerItem: 1, active: true },
+  })
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {
