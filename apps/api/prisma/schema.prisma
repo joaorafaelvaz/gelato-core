@@ -718,3 +718,36 @@ model VoucherRedemption {
   @@index([tenantId, voucherId])
   @@map("voucher_redemptions")
 }
+
+// ---------- Campanhas (Ciclo 4d) ----------
+
+model Campaign {
+  id             String    @id @default(cuid())
+  tenantId       String
+  name           String
+  channel        String // 'email' | 'sms'
+  subject        String?
+  body           String
+  status         String    @default("draft") // 'draft' | 'sent'
+  recipientCount Int?
+  createdAt      DateTime  @default(now())
+  sentAt         DateTime?
+
+  dispatches CampaignDispatch[]
+
+  @@map("campaigns")
+}
+
+model CampaignDispatch {
+  id         String   @id @default(cuid())
+  tenantId   String
+  campaignId String
+  customerId String
+  channel    String
+  at         DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+
+  @@index([tenantId, campaignId])
+  @@map("campaign_dispatches")
+}

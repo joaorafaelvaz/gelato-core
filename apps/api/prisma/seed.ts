@@ -251,6 +251,14 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     update: {},
     create: { tenantId: TENANT_ID, code: 'SOMMER10', type: 'percent', value: 10, maxUses: 100, active: true },
   })
+
+  // Campanhas (Ciclo 4d): campanha demo em rascunho.
+  const campExists = await prisma.campaign.findFirst({ where: { tenantId: TENANT_ID, name: 'Sommer-Newsletter' } })
+  if (!campExists) {
+    await prisma.campaign.create({
+      data: { tenantId: TENANT_ID, name: 'Sommer-Newsletter', channel: 'email', subject: 'Neue Sommersorten!', body: 'Probieren Sie unsere neuen Sorten.', status: 'draft' },
+    })
+  }
 }
 
 async function linkRole(prisma: PrismaClient, userId: string, roleId?: string): Promise<void> {
