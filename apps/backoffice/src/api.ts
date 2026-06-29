@@ -112,6 +112,16 @@ export interface LoyaltyView {
   entries: { kind: string; points: number; stamps: number; at: string }[]
 }
 
+export interface VoucherRow {
+  id: string
+  code: string
+  type: string
+  value: number
+  maxUses: number | null
+  active: boolean
+  usedCount: number
+}
+
 export async function apiPut<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'PUT',
