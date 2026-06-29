@@ -165,6 +165,20 @@ async function insertVoucherRedemption(pool: Pool): Promise<string> {
   return id
 }
 
+async function insertCampaignDispatch(pool: Pool): Promise<string> {
+  const cid = `cmp_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO campaigns (id, "tenantId", name, channel, body, status, "createdAt") VALUES ($1, 'demo-tenant', 'T', 'email', 'b', 'sent', now())`,
+    [cid],
+  )
+  const id = `cd_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  await pool.query(
+    `INSERT INTO campaign_dispatches (id, "tenantId", "campaignId", "customerId", channel, at) VALUES ($1, 'demo-tenant', $2, 'cust', 'email', now())`,
+    [id, cid],
+  )
+  return id
+}
+
 describe('fiscal immutability (DB-enforced)', () => {
   it('allows INSERT into a fiscal table as the app role', async (ctx) => {
     if (!dbAvailable) return ctx.skip()
@@ -259,5 +273,12 @@ describe('fiscal immutability (DB-enforced)', () => {
     const id = await insertVoucherRedemption(appPool)
     await expect(appPool.query(`UPDATE voucher_redemptions SET "discountCents"=0 WHERE id=$1`, [id])).rejects.toThrow()
     await expect(appPool.query(`DELETE FROM voucher_redemptions WHERE id=$1`, [id])).rejects.toThrow()
+  })
+
+  it('campaign_dispatches is append-only (INSERT ok, UPDATE/DELETE blocked); campaigns stays mutable', async (ctx) => {
+    if (!dbAvailable) return ctx.skip()
+    const id = await insertCampaignDispatch(appPool)
+    await expect(appPool.query(`UPDATE campaign_dispatches SET channel='sms' WHERE id=$1`, [id])).rejects.toThrow()
+    await expect(appPool.query(`DELETE FROM campaign_dispatches WHERE id=$1`, [id])).rejects.toThrow()
   })
 })

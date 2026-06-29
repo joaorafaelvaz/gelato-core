@@ -79,20 +79,25 @@ export class ChecklistsService {
   /** Painel: por template ativo, último run + se está atrasado (recorrência). Derivado. */
   async status(tenantId: string) {
     const templates = await this.prisma.checklistTemplate.findMany({ where: { tenantId, active: true }, orderBy: { name: 'asc' } })
+    const ids = templates.map((t) => t.id)
+    // último run por template numa única query (sem N+1): distinct mantém o 1º de cada
+    // templateId na ordem completedAt desc = o run mais recente.
+    const latestRuns = ids.length
+      ? await this.prisma.checklistRun.findMany({ where: { tenantId, templateId: { in: ids } }, orderBy: { completedAt: 'desc' }, distinct: ['templateId'] })
+      : []
+    const byTemplate = new Map(latestRuns.map((r) => [r.templateId, r]))
     const now = Date.now()
-    const out: { templateId: string; name: string; recurrence: string; lastRunAt: Date | null; lastStatus: string | null; overdue: boolean }[] = []
-    for (const t of templates) {
-      const last = await this.prisma.checklistRun.findFirst({ where: { tenantId, templateId: t.id }, orderBy: { completedAt: 'desc' } })
-      out.push({
+    return templates.map((t) => {
+      const last = byTemplate.get(t.id)
+      return {
         templateId: t.id,
         name: t.name,
         recurrence: t.recurrence,
         lastRunAt: last?.completedAt ?? null,
         lastStatus: last?.status ?? null,
         overdue: isOverdue(t.recurrence, last ? last.completedAt.getTime() : null, now),
-      })
-    }
-    return out
+      }
+    })
   }
 
   /** Log de auditoria: todos os resultados não-ok (com ação corretiva). Derivado. */
