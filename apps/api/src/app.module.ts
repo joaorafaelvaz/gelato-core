@@ -15,6 +15,7 @@ import { TablesModule } from './tables/tables.module'
 import { StockModule } from './stock/stock.module'
 import { RecipesModule } from './recipes/recipes.module'
 import { ChecklistsModule } from './checklists/checklists.module'
+import { CustomersModule } from './customers/customers.module'
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ChecklistsModule } from './checklists/checklists.module'
     StockModule,
     RecipesModule,
     ChecklistsModule,
+    CustomersModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
