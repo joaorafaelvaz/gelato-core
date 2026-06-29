@@ -18,6 +18,7 @@ import { ChecklistsModule } from './checklists/checklists.module'
 import { CustomersModule } from './customers/customers.module'
 import { LoyaltyModule } from './loyalty/loyalty.module'
 import { VouchersModule } from './vouchers/vouchers.module'
+import { CampaignsModule } from './campaigns/campaigns.module'
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { VouchersModule } from './vouchers/vouchers.module'
     CustomersModule,
     LoyaltyModule,
     VouchersModule,
+    CampaignsModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
