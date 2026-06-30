@@ -130,6 +130,16 @@ export interface CampaignRow {
   recipientCount: number | null
 }
 
+export interface ProductionRecipeRow {
+  id: string
+  outputStockItemId: string
+  outputName: string
+  unit: string
+  yieldQty: number
+  active: boolean
+  ingredients: { stockItemId: string; name: string; unit: string; qty: number }[]
+}
+
 export async function apiPut<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'PUT',
