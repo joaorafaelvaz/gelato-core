@@ -177,6 +177,12 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     update: {},
     create: { id: 'stock-zucker', tenantId: TENANT_ID, name: 'Zucker', unit: 'g', minStock: 1000 },
   })
+  // Semi-acabado (Ciclo 5a): Eisbasis, produzido a partir de Milch + Zucker.
+  await prisma.stockItem.upsert({
+    where: { id: 'stock-eisbasis' },
+    update: {},
+    create: { id: 'stock-eisbasis', tenantId: TENANT_ID, name: 'Eisbasis', unit: 'ml' },
+  })
   for (const [id, stockItemId, qtyDelta] of [
     ['mov-milch-init', 'stock-milch', 10000],
     ['mov-zucker-init', 'stock-zucker', 5000],
@@ -257,6 +263,23 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
   if (!campExists) {
     await prisma.campaign.create({
       data: { tenantId: TENANT_ID, name: 'Sommer-Newsletter', channel: 'email', subject: 'Neue Sommersorten!', body: 'Probieren Sie unsere neuen Sorten.', status: 'draft' },
+    })
+  }
+
+  // Produção (Ciclo 5a): Eisbasis (semi-acabado) — 1 lote = 10000ml de 8000 Milch + 2000 Zucker.
+  await prisma.productionRecipe.upsert({
+    where: { tenantId_outputStockItemId: { tenantId: TENANT_ID, outputStockItemId: 'stock-eisbasis' } },
+    update: {},
+    create: { id: 'prodrec-eisbasis', tenantId: TENANT_ID, outputStockItemId: 'stock-eisbasis', yieldQty: 10000 },
+  })
+  for (const [id, stockItemId, qty] of [
+    ['proding-eisbasis-milch', 'stock-milch', 8000],
+    ['proding-eisbasis-zucker', 'stock-zucker', 2000],
+  ] as const) {
+    await prisma.productionRecipeIngredient.upsert({
+      where: { id },
+      update: { qty },
+      create: { id, productionRecipeId: 'prodrec-eisbasis', stockItemId, qty },
     })
   }
 }

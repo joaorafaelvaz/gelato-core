@@ -479,8 +479,10 @@ model StockItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  movements         StockMovement[]
-  recipeIngredients RecipeIngredient[]
+  movements             StockMovement[]
+  recipeIngredients     RecipeIngredient[]
+  productionRecipes     ProductionRecipe[]
+  productionIngredients ProductionRecipeIngredient[]
 
   @@map("stock_items")
 }
@@ -750,4 +752,35 @@ model CampaignDispatch {
 
   @@index([tenantId, campaignId])
   @@map("campaign_dispatches")
+}
+
+// ---------- Produção / BOM 2 níveis (Ciclo 5a) ----------
+
+model ProductionRecipe {
+  id                String   @id @default(cuid())
+  tenantId          String
+  outputStockItemId String
+  yieldQty          Int
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  output      StockItem                    @relation(fields: [outputStockItemId], references: [id])
+  ingredients ProductionRecipeIngredient[]
+
+  @@unique([tenantId, outputStockItemId])
+  @@map("production_recipes")
+}
+
+model ProductionRecipeIngredient {
+  id                 String @id @default(cuid())
+  productionRecipeId String
+  stockItemId        String
+  qty                Int
+
+  productionRecipe ProductionRecipe @relation(fields: [productionRecipeId], references: [id], onDelete: Cascade)
+  stockItem        StockItem        @relation(fields: [stockItemId], references: [id])
+
+  @@unique([productionRecipeId, stockItemId])
+  @@map("production_recipe_ingredients")
 }
