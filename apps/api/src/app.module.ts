@@ -19,6 +19,7 @@ import { CustomersModule } from './customers/customers.module'
 import { LoyaltyModule } from './loyalty/loyalty.module'
 import { VouchersModule } from './vouchers/vouchers.module'
 import { CampaignsModule } from './campaigns/campaigns.module'
+import { ProductionModule } from './production/production.module'
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { CampaignsModule } from './campaigns/campaigns.module'
     LoyaltyModule,
     VouchersModule,
     CampaignsModule,
+    ProductionModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
