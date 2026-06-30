@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Simple pre-commit hook: typecheck and test API
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+pnpm --filter api typecheck
+pnpm --filter api test
+pnpm --filter backoffice typecheck
+pnpm --filter pos-terminal typecheck
+pnpm --filter @gelato/hardware typecheck

@@ -1,0 +1,57 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "logout": "Sair",
+    "login": "Entrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "pin": "PIN"
+  },
+  "login": {
+    "title": "Login do caixa",
+    "tenantSlug": "Slug do tenant",
+    "submit": "Entrar",
+    "error": "Falha no login",
+    "pinTitle": "Digite o PIN",
+    "pinError": "PIN incorreto"
+  },
+  "pos": {
+    "title": "Ponto de venda",
+    "saloon": "No salão",
+    "takeaway": "Para viagem",
+    "openShift": "Abrir turno",
+    "closeShift": "Fechar turno",
+    "pay": "Pagar",
+    "total": "Total",
+    "emptyCart": "Carrinho vazio",
+    "search": "Buscar produto...",
+    "noProducts": "Nenhum produto disponível",
+    "noResults": "Nenhum resultado",
+    "clear": "Limpar",
+    "variants": "Variantes",
+    "addToCart": "Adicionar ao carrinho"
+  },
+  "shift": {
+    "open": "Turno aberto",
+    "close": "Fechar turno",
+    "closed": "Sem turno aberto",
+    "float": "Troco"
+  },
+  "checkout": {
+    "success": "Venda concluída",
+    "newSale": "Nova venda"
+  },
+  "offline": {
+    "queue": "Enfileirar offline",
+    "queued": "Salvo offline",
+    "queuedDesc": "O pedido será sincronizado quando a conexão for restaurada."
+  },
+  "sync": {
+    "online": "Online",
+    "offline": "Offline",
+    "syncNow": "Sincronizar agora",
+    "pending": "Pendente"
+  }
+}

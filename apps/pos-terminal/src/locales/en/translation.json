@@ -1,0 +1,57 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "logout": "Logout",
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "pin": "PIN"
+  },
+  "login": {
+    "title": "POS Login",
+    "tenantSlug": "Tenant slug",
+    "submit": "Login",
+    "error": "Login failed",
+    "pinTitle": "Enter PIN",
+    "pinError": "Wrong PIN"
+  },
+  "pos": {
+    "title": "Point of Sale",
+    "saloon": "In house",
+    "takeaway": "Takeaway",
+    "openShift": "Open shift",
+    "closeShift": "Close shift",
+    "pay": "Pay",
+    "total": "Total",
+    "emptyCart": "Cart is empty",
+    "search": "Search products...",
+    "noProducts": "No products available",
+    "noResults": "No results",
+    "clear": "Clear",
+    "variants": "Variants",
+    "addToCart": "Add to cart"
+  },
+  "shift": {
+    "open": "Shift open",
+    "close": "Close shift",
+    "closed": "No open shift",
+    "float": "Float"
+  },
+  "checkout": {
+    "success": "Sale completed",
+    "newSale": "New sale"
+  },
+  "offline": {
+    "queue": "Queue offline",
+    "queued": "Saved offline",
+    "queuedDesc": "The order will be synced when the connection is restored."
+  },
+  "sync": {
+    "online": "Online",
+    "offline": "Offline",
+    "syncNow": "Sync now",
+    "pending": "Pending"
+  }
+}

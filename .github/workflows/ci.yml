@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api db:generate
+      - run: pnpm --filter api typecheck
+      - run: pnpm --filter api test
+      - run: pnpm --filter api build
+
+  backoffice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter backoffice typecheck
+      - run: pnpm --filter backoffice build
+
+  pos-terminal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter pos-terminal typecheck
+      - run: pnpm --filter pos-terminal build
+
+  hardware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @gelato/hardware typecheck
+      - run: pnpm --filter @gelato/hardware build
+
+  api-e2e:
+    runs-on: ubuntu-latest
+    needs: api-unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bring up Postgres
+        run: |
+          docker run -d --name gelato-pg \
+            -e POSTGRES_USER=gelato \
+            -e POSTGRES_PASSWORD=gelato_password \
+            -e POSTGRES_DB=gelatocore \
+            -p 5432:5432 \
+            postgres:17-alpine
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api db:generate
+      - run: pnpm --filter api build
+
+      - name: Run API + migrations + seed
+        env:
+          DATABASE_URL: postgresql://gelato:gelato_password@localhost:5432/gelatocore?schema=public
+          JWT_SECRET: ci-test-secret
+          API_PORT: 4000
+          API_HOST: 127.0.0.1
+          PORT: 4000
+        run: |
+          cd apps/api
+          ./node_modules/.bin/prisma migrate deploy
+          ./node_modules/.bin/tsx prisma/seed.ts
+          node dist/main.js &
+          API_PID=$!
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+            sleep 1
+            if curl -sf http://127.0.0.1:4000/api/health > /dev/null 2>&1; then
+              echo "API up after ${i}s"
+              break
+            fi
+          done
+          curl -fsS http://127.0.0.1:4000/api/health
+
+      - name: Run E2E smoke tests
+        env:
+          API_URL: http://127.0.0.1:4000/api
+        run: |
+          cd apps/api
+          ./node_modules/.bin/tsx test/e2e-stack.ts
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f gelato-pg || true
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build api image
+        run: docker buildx build -f docker/Dockerfile.api --load .
+
+      - name: Build backoffice image
+        run: docker buildx build -f docker/Dockerfile.backoffice --load .
+
+      - name: Build pos-terminal image
+        run: docker buildx build -f docker/Dockerfile.pos --load .

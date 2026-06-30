@@ -1,0 +1,52 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "search": "Buscar",
+    "logout": "Sair",
+    "login": "Entrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "actions": "Ações",
+    "status": "Status",
+    "name": "Nome",
+    "type": "Tipo",
+    "value": "Valor",
+    "code": "Código"
+  },
+  "login": {
+    "title": "Entrar",
+    "tenantSlug": "Slug do tenant",
+    "submit": "Entrar",
+    "error": "Falha no login"
+  },
+  "navigation": {
+    "dashboard": "Painel",
+    "tenants": "Tenants",
+    "branches": "Filiais",
+    "kassen": "Caixas",
+    "users": "Usuários",
+    "products": "Produtos",
+    "stock": "Estoque",
+    "settings": "Configurações",
+    "fiscal": "Fiscal",
+    "tse": "Gestão TSE",
+    "sales": "Painel de Vendas",
+    "customers": "Clientes",
+    "loyalty": "Fidelidade",
+    "vouchers": "Vouchers",
+    "promotions": "Promoções",
+    "campaigns": "Campanhas",
+    "audit": "Log de Auditoria"
+  },
+  "dashboard": {
+    "title": "Painel",
+    "welcome": "Bem-vindo ao gelato-core"
+  }
+}

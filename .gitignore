@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.sw?
+
+# Docker data
+docker/volumes/
+docker/nginx/ssl/*.pem
+*.pid
+
+# Tauri
+target/
+src-tauri/target/
+
+# Test coverage
+coverage/

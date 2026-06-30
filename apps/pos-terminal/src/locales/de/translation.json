@@ -1,0 +1,57 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "logout": "Abmelden",
+    "login": "Anmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "pin": "PIN"
+  },
+  "login": {
+    "title": "Kasse anmelden",
+    "tenantSlug": "Tenant-Kürzel",
+    "submit": "Anmelden",
+    "error": "Anmeldung fehlgeschlagen",
+    "pinTitle": "PIN eingeben",
+    "pinError": "Falscher PIN"
+  },
+  "pos": {
+    "title": "Kasse",
+    "saloon": "Im Haus",
+    "takeaway": "Außer Haus",
+    "openShift": "Schicht öffnen",
+    "closeShift": "Schicht schließen",
+    "pay": "Zahlen",
+    "total": "Gesamt",
+    "emptyCart": "Warenkorb leer",
+    "search": "Produkt suchen...",
+    "noProducts": "Keine Produkte verfügbar",
+    "noResults": "Keine Ergebnisse",
+    "clear": "Leeren",
+    "variants": "Varianten",
+    "addToCart": "In den Warenkorb"
+  },
+  "shift": {
+    "open": "Schicht offen",
+    "close": "Schicht schließen",
+    "closed": "Keine offene Schicht",
+    "float": "Wechselgeld"
+  },
+  "checkout": {
+    "success": "Verkauf abgeschlossen",
+    "newSale": "Neuer Verkauf"
+  },
+  "offline": {
+    "queue": "In Warteschlange",
+    "queued": "Offline gespeichert",
+    "queuedDesc": "Die Bestellung wird synchronisiert, wenn die Verbindung wiederhergestellt ist."
+  },
+  "sync": {
+    "online": "Online",
+    "offline": "Offline",
+    "syncNow": "Jetzt synchronisieren",
+    "pending": "Ausstehend"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testRegex": ".e2e-spec.ts$",
+  "transformIgnorePatterns": [
+    "node_modules/(?!@gelato)"
+  ],
+  "transform": {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "target": "ES2022",
+          "experimentalDecorators": true,
+          "emitDecoratorMetadata": true,
+          "strictPropertyInitialization": false,
+          "esModuleInterop": true
+        }
+      }
+    ]
+  },
+  "testEnvironment": "node"
+}

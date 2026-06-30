@@ -1,0 +1,32 @@
+# --- Build stage ---
+FROM node:24-alpine AS builder
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml .prettierrc.json tsconfig.base.json pnpm-lock.yaml ./
+COPY apps/api/package.json apps/api/tsconfig*.json ./apps/api/
+COPY prisma ./prisma/
+COPY packages ./packages/
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @gelato/domain build
+RUN pnpm --filter @gelato/compliance build
+RUN pnpm --filter @gelato/hardware build
+RUN pnpm --filter @gelato/sync build
+COPY apps/api ./apps/api
+RUN pnpm --filter api db:generate
+RUN pnpm --filter api build
+
+# --- Runtime stage ---
+FROM node:24-alpine AS runner
+RUN apk add --no-cache dumb-init wget
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/tsconfig.base.json /app/pnpm-lock.yaml ./
+COPY --from=builder /app/apps/api/package.json ./apps/api/
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api ./apps/api
+EXPOSE 4000
+CMD ["dumb-init", "node", "apps/api/dist/main.js"]

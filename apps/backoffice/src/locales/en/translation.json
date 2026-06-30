@@ -1,0 +1,52 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "logout": "Logout",
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "active": "Active",
+    "inactive": "Inactive",
+    "actions": "Actions",
+    "status": "Status",
+    "name": "Name",
+    "type": "Type",
+    "value": "Value",
+    "code": "Code"
+  },
+  "login": {
+    "title": "Login",
+    "tenantSlug": "Tenant slug",
+    "submit": "Login",
+    "error": "Login failed"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "tenants": "Tenants",
+    "branches": "Branches",
+    "kassen": "Cash registers",
+    "users": "Users",
+    "products": "Products",
+    "stock": "Stock",
+    "settings": "Settings",
+    "fiscal": "Fiscal",
+    "tse": "TSE Management",
+    "sales": "Sales Dashboard",
+    "customers": "Customers",
+    "loyalty": "Loyalty",
+    "vouchers": "Vouchers",
+    "promotions": "Promotions",
+    "campaigns": "Campaigns",
+    "audit": "Audit Log"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to gelato-core"
+  }
+}

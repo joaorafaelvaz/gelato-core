@@ -1,0 +1,9 @@
+{
+  "identifier": "default",
+  "description": "gelato-core POS default capabilities",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "sql:default"
+  ]
+}

@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: gelato-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gelato}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gelato_password}
+      POSTGRES_DB: ${POSTGRES_DB:-gelatocore}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gelato} -d ${POSTGRES_DB:-gelatocore}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gelato-network
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: gelato-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://gelato:gelato_password@postgres:5432/gelatocore?schema=public}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      API_PORT: ${API_PORT:-4000}
+      API_HOST: ${API_HOST:-0.0.0.0}
+      NODE_ENV: production
+    ports:
+      - "${API_PORT:-4000}:${API_PORT:-4000}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${API_PORT:-4000}/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - gelato-network
+
+  backoffice:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backoffice
+    container_name: gelato-backoffice
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-/api}
+    ports:
+      - "${BACKOFFICE_PORT:-3000}:80"
+    networks:
+      - gelato-network
+
+  backup:
+    image: postgres:17-alpine
+    container_name: gelato-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gelato}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gelato_password}
+      POSTGRES_DB: ${POSTGRES_DB:-gelatocore}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+    volumes:
+      - ./backups:/backups
+    command: >
+      sh -c "
+      echo '0 2 * * * PGPASSWORD=$$POSTGRES_PASSWORD pg_dump -h postgres -U $$POSTGRES_USER $$POSTGRES_DB | gzip > /backups/gelatocore-$$(date +\%Y\%m\%d-\%H\%M\%S).sql.gz && find /backups -name gelatocore-*.sql.gz -mtime +$$BACKUP_RETENTION_DAYS -delete' | crontab - && crond -f
+      "
+    networks:
+      - gelato-network
+
+volumes:
+  postgres-data:
+
+networks:
+  gelato-network:
+    driver: bridge

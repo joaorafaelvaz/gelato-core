@@ -1,0 +1,52 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "search": "Suchen",
+    "logout": "Abmelden",
+    "login": "Anmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "actions": "Aktionen",
+    "status": "Status",
+    "name": "Name",
+    "type": "Typ",
+    "value": "Wert",
+    "code": "Code"
+  },
+  "login": {
+    "title": "Anmelden",
+    "tenantSlug": "Tenant-Kürzel",
+    "submit": "Anmelden",
+    "error": "Anmeldung fehlgeschlagen"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "tenants": "Mandanten",
+    "branches": "Filialen",
+    "kassen": "Kassen",
+    "users": "Benutzer",
+    "products": "Produkte",
+    "stock": "Lager",
+    "settings": "Einstellungen",
+    "fiscal": "Fiskal",
+    "tse": "TSE-Verwaltung",
+    "sales": "Verkaufsdashboard",
+    "customers": "Kunden",
+    "loyalty": "Treueprogramm",
+    "vouchers": "Gutscheine",
+    "promotions": "Aktionen",
+    "campaigns": "Kampagnen",
+    "audit": "Audit-Log"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Willkommen bei gelato-core"
+  }
+}

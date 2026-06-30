@@ -1,0 +1,33 @@
+{
+  "name": "gelato-core",
+  "private": true,
+  "version": "0.1.0",
+  "description": "German-compliant POS system for gelaterias",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:migrate": "pnpm --filter api db:migrate",
+    "db:generate": "pnpm --filter api db:generate",
+    "db:seed": "pnpm --filter api db:seed",
+    "db:studio": "pnpm --filter api db:studio",
+    "prepare": "husky || true",
+    "ci:full": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "@types/node": "^22.15.12",
+    "husky": "^9.1.7"
+  }
+}
