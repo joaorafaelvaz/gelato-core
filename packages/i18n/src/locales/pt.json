@@ -35,6 +35,7 @@
     "users": { "title": "Usuários" },
     "nav": { "today": "Hoje", "operations": "Operação", "catalog": "Cadastros", "customers": "Clientes", "fiscal": "Fiscal" },
     "page": { "dashboard": "Visão geral", "stock": "Estoque", "production": "Produção", "checklists": "Checklists (HACCP)", "products": "Produtos", "recipes": "Receitas", "crm": "Clientes (CRM)", "loyalty": "Fidelidade", "vouchers": "Vouchers", "campaigns": "Campanhas", "sales": "Vendas", "haccp": "Relatórios HACCP", "exports": "Exports (Finanzamt)" },
-    "common": { "loading": "Carregando…", "retry": "Tentar de novo", "loadError": "Falha ao carregar", "empty": "Nada por aqui ainda", "saved": "Salvo", "actionFailed": "Ação falhou", "logout": "Sair", "loginFailed": "Login falhou" }
+    "common": { "loading": "Carregando…", "retry": "Tentar de novo", "loadError": "Falha ao carregar", "empty": "Nada por aqui ainda", "saved": "Salvo", "actionFailed": "Ação falhou", "logout": "Sair", "loginFailed": "Login falhou" },
+    "dashboard": { "salesToday": "Vendas hoje", "stockAlerts": "Alertas de estoque", "haccpOverdue": "HACCP atrasado", "lastSales": "Últimas vendas" }
   }
 }

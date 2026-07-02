@@ -184,3 +184,8 @@ export interface ProductRow {
   name: string
   netCents: number
 }
+
+export interface OrdersSummary {
+  count: number
+  totalGross: number
+}
