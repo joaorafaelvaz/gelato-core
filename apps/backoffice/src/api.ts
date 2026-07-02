@@ -1,5 +1,17 @@
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://127.0.0.1:3000'
 
+let onUnauthorized: (() => void) | null = null
+
+/** Registrado pelo App: 401 em qualquer chamada → limpa token e volta ao login. */
+export function setOnUnauthorized(fn: (() => void) | null): void {
+  onUnauthorized = fn
+}
+
+function check(res: Response, path: string): void {
+  if (res.status === 401) onUnauthorized?.()
+  if (!res.ok) throw new Error(`${path} failed`)
+}
+
 export interface LoginResult {
   access_token: string
   permissions: string[]
@@ -17,14 +29,14 @@ export async function apiLogin(email: string, password: string): Promise<LoginRe
 
 export async function apiGet<T>(path: string, token: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } })
-  if (!res.ok) throw new Error(`${path} failed`)
+  check(res, path)
   return res.json() as Promise<T>
 }
 
 /** GET binário (ex.: download do .zip DSFinV-K) com o Bearer token. */
 export async function apiGetBlob(path: string, token: string): Promise<Blob> {
   const res = await fetch(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } })
-  if (!res.ok) throw new Error(`${path} failed`)
+  check(res, path)
   return res.blob()
 }
 
@@ -146,7 +158,7 @@ export async function apiPut<T>(path: string, token: string, body: unknown): Pro
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`${path} failed`)
+  check(res, path)
   return res.json() as Promise<T>
 }
 
@@ -156,6 +168,19 @@ export async function apiPost<T>(path: string, token: string, body: unknown): Pr
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`${path} failed`)
+  check(res, path)
   return res.json() as Promise<T>
+}
+
+export interface OrderRow {
+  id: string
+  ts: string
+  mode: string
+  totalGross: number
+}
+
+export interface ProductRow {
+  id: string
+  name: string
+  netCents: number
 }
