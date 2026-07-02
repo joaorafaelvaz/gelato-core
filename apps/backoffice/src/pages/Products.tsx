@@ -1,23 +1,25 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiGet, type ProductRow } from '../api'
+import { useFetch } from '../useFetch'
 import { euro } from '../format'
+import { Spinner } from '../ui/Spinner'
+import { ErrorState } from '../ui/ErrorState'
+import { EmptyState } from '../ui/EmptyState'
 
 export function Products({ token }: { token: string }) {
   const { t } = useTranslation()
-  const [products, setProducts] = useState<ProductRow[]>([])
+  const products = useFetch(() => apiGet<ProductRow[]>('/products', token), [token])
 
-  useEffect(() => {
-    apiGet<ProductRow[]>('/products', token)
-      .then(setProducts)
-      .catch(() => setProducts([]))
-  }, [token])
+  if (products.loading) return <Spinner />
+  if (products.error) return <ErrorState onRetry={products.reload} />
+  if (!products.data || products.data.length === 0) {
+    return <EmptyState message={t('backoffice.common.empty')} />
+  }
 
   return (
     <section>
-      <h2>{t('backoffice.products.title')}</h2>
       <ul>
-        {products.map((p) => (
+        {products.data.map((p) => (
           <li key={p.id}>
             {p.name} — {euro(p.netCents)}
           </li>

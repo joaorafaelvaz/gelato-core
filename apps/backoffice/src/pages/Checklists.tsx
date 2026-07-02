@@ -1,5 +1,12 @@
-import { useEffect, useState } from 'react'
-import { apiGet, apiPost, type ChecklistTemplateRow, type ChecklistRunRow } from '../api'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { apiGet, apiPost, type ChecklistRunRow, type ChecklistTemplateRow } from '../api'
+import { useFetch } from '../useFetch'
+import { useToast } from '../ui/Toast'
+import { Spinner } from '../ui/Spinner'
+import { ErrorState } from '../ui/ErrorState'
+import { EmptyState } from '../ui/EmptyState'
+import { Pagination } from '../ui/Pagination'
 
 function fmtRange(min: number | null, max: number | null): string {
   if (min == null || max == null) return ''
@@ -7,84 +14,98 @@ function fmtRange(min: number | null, max: number | null): string {
   return ` (${c(min)}…${c(max)} °C)`
 }
 
+const PAGE = 25
+
 export function Checklists({ token }: { token: string }) {
-  const [templates, setTemplates] = useState<ChecklistTemplateRow[]>([])
-  const [runs, setRuns] = useState<ChecklistRunRow[]>([])
+  const { t } = useTranslation()
+  const toast = useToast()
   const [selected, setSelected] = useState('')
   const [values, setValues] = useState<Record<string, { bool?: boolean; celsius?: string; text?: string; corrective?: string }>>({})
-  const [error, setError] = useState('')
+  const [page, setPage] = useState(0)
+  const templates = useFetch(() => apiGet<ChecklistTemplateRow[]>('/checklists/templates', token), [token])
+  const runs = useFetch(() => apiGet<ChecklistRunRow[]>('/checklists/runs', token), [token])
 
-  const reload = (): void => {
-    apiGet<ChecklistTemplateRow[]>('/checklists/templates', token).then(setTemplates).catch(() => setTemplates([]))
-    apiGet<ChecklistRunRow[]>('/checklists/runs', token).then(setRuns).catch(() => setRuns([]))
-  }
-  useEffect(reload, [token])
-
-  const tpl = templates.find((t) => t.id === selected)
+  const tpl = (templates.data ?? []).find((x) => x.id === selected)
   const set = (taskId: string, patch: Partial<{ bool: boolean; celsius: string; text: string; corrective: string }>) =>
     setValues((v) => ({ ...v, [taskId]: { ...v[taskId], ...patch } }))
 
   async function submit(): Promise<void> {
     if (!tpl) return
-    setError('')
-    const results = tpl.tasks.map((t) => {
-      const v = values[t.id] ?? {}
-      const r: Record<string, unknown> = { task_id: t.id }
-      if (t.type === 'boolean') r.value_bool = v.bool ?? false
-      if (t.type === 'temperature') r.value_num = v.celsius != null && v.celsius !== '' ? Math.round(Number(v.celsius) * 10) : null
-      if (t.type === 'text') r.value_text = v.text ?? ''
+    const results = tpl.tasks.map((task) => {
+      const v = values[task.id] ?? {}
+      const r: Record<string, unknown> = { task_id: task.id }
+      if (task.type === 'boolean') r.value_bool = v.bool ?? false
+      if (task.type === 'temperature') r.value_num = v.celsius != null && v.celsius !== '' ? Math.round(Number(v.celsius) * 10) : null
+      if (task.type === 'text') r.value_text = v.text ?? ''
       if (v.corrective) r.corrective_action = v.corrective
       return r
     })
     try {
       await apiPost('/checklists/runs', token, { client_event_id: crypto.randomUUID(), template_id: tpl.id, kasse_id: 'demo-kasse', results })
       setValues({})
-      reload()
+      toast('success', t('backoffice.common.saved'))
+      runs.reload()
     } catch {
-      setError('Falha — confira valores e ações corretivas dos desvios.')
+      toast('error', t('backoffice.checklists.submitFailed'))
     }
   }
 
+  const allRuns = runs.data ?? []
+  const pageCount = Math.ceil(allRuns.length / PAGE)
+  const visible = allRuns.slice(page * PAGE, (page + 1) * PAGE)
+
   return (
-    <section style={{ marginTop: '2rem' }}>
-      <h2>Checklists (HACCP)</h2>
-      <select value={selected} onChange={(e) => { setSelected(e.target.value); setValues({}) }}>
-        <option value="">— executar template —</option>
-        {templates.filter((t) => t.active).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-      </select>
-      {tpl && (
-        <div style={{ margin: '0.5rem 0', display: 'grid', gap: 6 }}>
-          {tpl.tasks.map((t) => (
-            <div key={t.id}>
-              <label>
-                {t.label}
-                {t.type === 'temperature' && fmtRange(t.validMin, t.validMax)}{' '}
-                {t.type === 'boolean' && <input type="checkbox" checked={values[t.id]?.bool ?? false} onChange={(e) => set(t.id, { bool: e.target.checked })} />}
-                {t.type === 'temperature' && <input type="number" step="0.1" placeholder="°C" value={values[t.id]?.celsius ?? ''} onChange={(e) => set(t.id, { celsius: e.target.value })} />}
-                {t.type === 'text' && <input value={values[t.id]?.text ?? ''} onChange={(e) => set(t.id, { text: e.target.value })} />}
-              </label>
-              {t.type !== 'text' && (
-                <input style={{ marginLeft: 8 }} placeholder="ação corretiva (se desvio)" value={values[t.id]?.corrective ?? ''} onChange={(e) => set(t.id, { corrective: e.target.value })} />
-              )}
+    <section>
+      {templates.loading && <Spinner />}
+      {templates.error && <ErrorState onRetry={templates.reload} />}
+      {templates.data && (
+        <>
+          <select value={selected} onChange={(e) => { setSelected(e.target.value); setValues({}) }}>
+            <option value="">{t('backoffice.checklists.run')}</option>
+            {templates.data.filter((x) => x.active).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
+          {tpl && (
+            <div style={{ margin: '0.5rem 0', display: 'grid', gap: 6 }}>
+              {tpl.tasks.map((task) => (
+                <div key={task.id}>
+                  <label>
+                    {task.label}
+                    {task.type === 'temperature' && fmtRange(task.validMin, task.validMax)}{' '}
+                    {task.type === 'boolean' && <input type="checkbox" checked={values[task.id]?.bool ?? false} onChange={(e) => set(task.id, { bool: e.target.checked })} />}
+                    {task.type === 'temperature' && <input type="number" step="0.1" placeholder="°C" value={values[task.id]?.celsius ?? ''} onChange={(e) => set(task.id, { celsius: e.target.value })} />}
+                    {task.type === 'text' && <input value={values[task.id]?.text ?? ''} onChange={(e) => set(task.id, { text: e.target.value })} />}
+                  </label>
+                  {task.type !== 'text' && (
+                    <input style={{ marginLeft: 8 }} placeholder={t('backoffice.checklists.corrective')} value={values[task.id]?.corrective ?? ''} onChange={(e) => set(task.id, { corrective: e.target.value })} />
+                  )}
+                </div>
+              ))}
+              <button onClick={() => void submit()}>{t('backoffice.checklists.submit')}</button>
             </div>
-          ))}
-          <button onClick={submit}>Submeter</button>
-          {error && <span style={{ color: 'crimson' }}>{error}</span>}
-        </div>
+          )}
+        </>
       )}
-      <h3>Histórico</h3>
-      <ul>
-        {runs.map((r) => {
-          const t = templates.find((x) => x.id === r.templateId)
-          const dev = r.results.filter((x) => !x.ok).length
-          return (
-            <li key={r.id} style={{ color: r.status === 'deviations' ? '#b91c1c' : undefined }}>
-              {t?.name ?? r.templateId} — {r.status}
-              {dev > 0 ? ` (${dev} desvio(s))` : ''} — {new Date(r.completedAt).toLocaleString('de-DE')}
-            </li>
-          )
-        })}
-      </ul>
+      <h3>{t('backoffice.checklists.history')}</h3>
+      {runs.loading && <Spinner />}
+      {runs.error && <ErrorState onRetry={runs.reload} />}
+      {runs.data && runs.data.length === 0 && <EmptyState message={t('backoffice.common.empty')} />}
+      {allRuns.length > 0 && (
+        <>
+          <ul>
+            {visible.map((r) => {
+              const tplName = (templates.data ?? []).find((x) => x.id === r.templateId)?.name
+              const dev = r.results.filter((x) => !x.ok).length
+              return (
+                <li key={r.id} style={{ color: r.status === 'deviations' ? 'var(--red-text)' : undefined }}>
+                  {tplName ?? r.templateId} — {r.status}
+                  {dev > 0 ? ` (${t('backoffice.checklists.deviations', { count: dev })})` : ''} — {new Date(r.completedAt).toLocaleString('de-DE')}
+                </li>
+              )
+            })}
+          </ul>
+          <Pagination page={page} pageCount={pageCount} onPage={setPage} />
+        </>
+      )}
     </section>
   )
 }

@@ -30,9 +30,7 @@
     }
   },
   "backoffice": {
-    "sales": { "title": "Sales", "loadMore": "Load more", "date": "Date" },
-    "products": { "title": "Products" },
-    "users": { "title": "Users" },
+    "sales": { "loadMore": "Load more", "date": "Date" },
     "nav": { "today": "Today", "operations": "Operations", "catalog": "Catalog", "customers": "Customers", "fiscal": "Fiscal" },
     "page": { "dashboard": "Overview", "stock": "Stock", "production": "Production", "checklists": "Checklists (HACCP)", "products": "Products", "recipes": "Recipes", "crm": "Customers (CRM)", "loyalty": "Loyalty", "vouchers": "Vouchers", "campaigns": "Campaigns", "sales": "Sales", "haccp": "HACCP reports", "exports": "Exports (Finanzamt)" },
     "common": { "loading": "Loading…", "retry": "Try again", "loadError": "Failed to load", "empty": "Nothing here yet", "saved": "Saved", "actionFailed": "Action failed", "logout": "Log out", "loginFailed": "Login failed" },
