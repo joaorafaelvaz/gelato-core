@@ -843,7 +843,7 @@ git commit -m "feat(backoffice): shell com abas de grupo + App.tsx dividido em p
 
 - [ ] **Step 1: Escrever o e2e que falha** — `apps/api/test/orders-query.e2e.test.ts` (completo).
 
-A suíte roda arquivos em paralelo contra o mesmo banco (5433), e vários testes inserem vendas do demo-tenant "agora". Por isso a fixture usa uma **janela histórica única por execução** (~200 anos atrás + os ms do relógio da execução): determinística dentro do run, sem colisão entre runs nem com testes concorrentes. Os INSERTs diretos via Prisma são permitidos (ledger é append-only; só UPDATE/DELETE são proibidos).
+A suíte roda arquivos em paralelo contra o mesmo banco (5433), e vários testes inserem vendas do demo-tenant "agora". Por isso a fixture usa uma **janela histórica de 24h num dia aleatório entre 1500 e ~1773** (100.000 dias possíveis): nenhuma venda real chega perto, e a chance de duas execuções sortearem o mesmo dia é desprezível — janelas derivadas do relógio (ex. `now − 200 anos`) NÃO servem, porque execuções próximas geram janelas de 24h sobrepostas e as linhas acumulam. Os INSERTs diretos via Prisma são permitidos (ledger é append-only; só UPDATE/DELETE são proibidos).
 
 ```ts
 import { Test } from '@nestjs/testing'
@@ -853,8 +853,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppModule } from '../src/app.module'
 import { PrismaService } from '../src/prisma/prisma.service'
 
-const WINDOW_START = new Date(Date.now() - 200 * 365 * 24 * 3600 * 1000)
-const WINDOW_END = new Date(WINDOW_START.getTime() + 24 * 3600 * 1000)
+const DAY_MS = 24 * 3600 * 1000
+const WINDOW_START = new Date(Date.UTC(1500, 0, 1) + Math.floor(Math.random() * 100_000) * DAY_MS)
+const WINDOW_END = new Date(WINDOW_START.getTime() + DAY_MS)
 const at = (hours: number): Date => new Date(WINDOW_START.getTime() + hours * 3600 * 1000)
 const iso = (d: Date): string => d.toISOString()
 
