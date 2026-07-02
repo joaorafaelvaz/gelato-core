@@ -30,7 +30,7 @@
     }
   },
   "backoffice": {
-    "sales": { "title": "Sales" },
+    "sales": { "title": "Sales", "loadMore": "Load more", "date": "Date" },
     "products": { "title": "Products" },
     "users": { "title": "Users" },
     "nav": { "today": "Today", "operations": "Operations", "catalog": "Catalog", "customers": "Customers", "fiscal": "Fiscal" },
