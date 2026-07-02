@@ -32,6 +32,9 @@
   "backoffice": {
     "sales": { "title": "Verkäufe" },
     "products": { "title": "Produkte" },
-    "users": { "title": "Benutzer" }
+    "users": { "title": "Benutzer" },
+    "nav": { "today": "Heute", "operations": "Betrieb", "catalog": "Stammdaten", "customers": "Kunden", "fiscal": "Fiskal" },
+    "page": { "dashboard": "Übersicht", "stock": "Lager", "production": "Produktion", "checklists": "Checklisten (HACCP)", "products": "Produkte", "recipes": "Rezepte", "crm": "Kunden (CRM)", "loyalty": "Treueprogramm", "vouchers": "Gutscheine", "campaigns": "Kampagnen", "sales": "Verkäufe", "haccp": "HACCP-Berichte", "exports": "Exporte (Finanzamt)" },
+    "common": { "loading": "Lädt…", "retry": "Erneut versuchen", "loadError": "Fehler beim Laden", "empty": "Noch keine Einträge", "saved": "Gespeichert", "actionFailed": "Aktion fehlgeschlagen", "logout": "Abmelden", "loginFailed": "Anmeldung fehlgeschlagen" }
   }
 }
