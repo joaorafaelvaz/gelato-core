@@ -36,6 +36,16 @@
     "nav": { "today": "Today", "operations": "Operations", "catalog": "Catalog", "customers": "Customers", "fiscal": "Fiscal" },
     "page": { "dashboard": "Overview", "stock": "Stock", "production": "Production", "checklists": "Checklists (HACCP)", "products": "Products", "recipes": "Recipes", "crm": "Customers (CRM)", "loyalty": "Loyalty", "vouchers": "Vouchers", "campaigns": "Campaigns", "sales": "Sales", "haccp": "HACCP reports", "exports": "Exports (Finanzamt)" },
     "common": { "loading": "Loading…", "retry": "Try again", "loadError": "Failed to load", "empty": "Nothing here yet", "saved": "Saved", "actionFailed": "Action failed", "logout": "Log out", "loginFailed": "Login failed" },
-    "dashboard": { "salesToday": "Sales today", "stockAlerts": "Stock alerts", "haccpOverdue": "HACCP overdue", "lastSales": "Last sales" }
+    "dashboard": { "salesToday": "Sales today", "stockAlerts": "Stock alerts", "haccpOverdue": "HACCP overdue", "lastSales": "Last sales" },
+    "stock": { "item": "Item", "unit": "Unit", "current": "Current", "min": "Min.", "receive": "Receive", "count": "Count", "qty": "Quantity", "selectItem": "— select item —", "alerts": "{{count}} alert(s):", "negative": "negative" },
+    "recipes": { "yields": "makes {{count}}", "inactive": "inactive" },
+    "production": { "yieldPerBatch": "yields {{qty}} {{unit}}/batch", "batches": "batches", "produce": "Produce", "produced": "Produced" },
+    "checklists": { "run": "— run template —", "submit": "Submit", "history": "History", "corrective": "corrective action (if deviation)", "submitFailed": "Failed — check values and corrective actions", "deviations": "{{count}} deviation(s)" },
+    "haccp": { "status": "Status", "checklist": "Checklist", "recurrence": "Recurrence", "last": "Last", "state": "State", "overdue": "OVERDUE", "recentDeviations": "Recent deviations" },
+    "crm": { "name": "Name", "contact": "Contact", "consents": "Consents", "anonymize": "Anonymize (GDPR)", "anonymized": "— anonymized —" },
+    "loyalty": { "pointsPerEuro": "Points/€", "stampsPerItem": "Stamps/item", "active": "Active", "save": "Save", "showBalance": "Show balance", "balance": "{{points}} pts / {{stamps}} stamps" },
+    "vouchers": { "code": "Code", "type": "Type", "value": "Value", "uses": "Uses", "active": "Active", "create": "Create" },
+    "campaigns": { "name": "Name", "channel": "Channel", "status": "Status", "recipients": "Recipients", "send": "Send", "create": "Create", "message": "Message" },
+    "exports": { "from": "from", "to": "to" }
   }
 }

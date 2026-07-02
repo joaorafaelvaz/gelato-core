@@ -36,6 +36,16 @@
     "nav": { "today": "Hoje", "operations": "Operação", "catalog": "Cadastros", "customers": "Clientes", "fiscal": "Fiscal" },
     "page": { "dashboard": "Visão geral", "stock": "Estoque", "production": "Produção", "checklists": "Checklists (HACCP)", "products": "Produtos", "recipes": "Receitas", "crm": "Clientes (CRM)", "loyalty": "Fidelidade", "vouchers": "Vouchers", "campaigns": "Campanhas", "sales": "Vendas", "haccp": "Relatórios HACCP", "exports": "Exports (Finanzamt)" },
     "common": { "loading": "Carregando…", "retry": "Tentar de novo", "loadError": "Falha ao carregar", "empty": "Nada por aqui ainda", "saved": "Salvo", "actionFailed": "Ação falhou", "logout": "Sair", "loginFailed": "Login falhou" },
-    "dashboard": { "salesToday": "Vendas hoje", "stockAlerts": "Alertas de estoque", "haccpOverdue": "HACCP atrasado", "lastSales": "Últimas vendas" }
+    "dashboard": { "salesToday": "Vendas hoje", "stockAlerts": "Alertas de estoque", "haccpOverdue": "HACCP atrasado", "lastSales": "Últimas vendas" },
+    "stock": { "item": "Insumo", "unit": "Unidade", "current": "Atual", "min": "Mín.", "receive": "Entrada", "count": "Contagem", "qty": "Quantidade", "selectItem": "— insumo —", "alerts": "{{count}} em alerta:", "negative": "negativo" },
+    "recipes": { "yields": "dá p/ {{count}}", "inactive": "inativa" },
+    "production": { "yieldPerBatch": "rende {{qty}} {{unit}}/lote", "batches": "lotes", "produce": "Produzir", "produced": "Produzido" },
+    "checklists": { "run": "— executar template —", "submit": "Submeter", "history": "Histórico", "corrective": "ação corretiva (se desvio)", "submitFailed": "Falha — confira valores e ações corretivas", "deviations": "{{count}} desvio(s)" },
+    "haccp": { "status": "Status", "checklist": "Checklist", "recurrence": "Recorrência", "last": "Último", "state": "Estado", "overdue": "ATRASADO", "recentDeviations": "Desvios recentes" },
+    "crm": { "name": "Nome", "contact": "Contato", "consents": "Consentimentos", "anonymize": "Anonimizar (DSGVO)", "anonymized": "— anonimizado —" },
+    "loyalty": { "pointsPerEuro": "Pontos/€", "stampsPerItem": "Carimbos/item", "active": "Ativo", "save": "Salvar", "showBalance": "Ver saldo", "balance": "{{points}} pts / {{stamps}} carimbos" },
+    "vouchers": { "code": "Código", "type": "Tipo", "value": "Valor", "uses": "Usos", "active": "Ativo", "create": "Criar" },
+    "campaigns": { "name": "Nome", "channel": "Canal", "status": "Status", "recipients": "Destinatários", "send": "Enviar", "create": "Criar", "message": "Mensagem" },
+    "exports": { "from": "de", "to": "até" }
   }
 }
