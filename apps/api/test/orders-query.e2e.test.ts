@@ -5,8 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppModule } from '../src/app.module'
 import { PrismaService } from '../src/prisma/prisma.service'
 
-const WINDOW_START = new Date(Date.now() - 200 * 365 * 24 * 3600 * 1000)
-const WINDOW_END = new Date(WINDOW_START.getTime() + 24 * 3600 * 1000)
+const DAY_MS = 24 * 3600 * 1000
+const WINDOW_START = new Date(Date.UTC(1500, 0, 1) + Math.floor(Math.random() * 100_000) * DAY_MS)
+const WINDOW_END = new Date(WINDOW_START.getTime() + DAY_MS)
 const at = (hours: number): Date => new Date(WINDOW_START.getTime() + hours * 3600 * 1000)
 const iso = (d: Date): string => d.toISOString()
 
