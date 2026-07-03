@@ -12,6 +12,13 @@
 		reverse_proxy api:3000
 	}
 
+	# PDV (pos-web) em /pos — buildado com base=/pos/
+	handle /pos* {
+		root * /srv
+		try_files {path} /pos/index.html
+		file_server
+	}
+
 	# SPA do backoffice (rotas por hash; fallback p/ index.html por segurança)
 	handle {
 		root * /srv

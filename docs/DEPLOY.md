@@ -37,6 +37,9 @@ Internet ──443──> Caddy ──/api/*──> api:3000 (NestJS, role gelat
    ./deploy.sh seed       # opcional: dados demo
    ```
 3. Abra `https://gelato.linkwise.digital` → login `admin@demo.test` / `admin123`.
+4. **PDV demo:** `https://gelato.linkwise.digital/pos` → PIN `1234` (operador da `demo-kasse`).
+   Venda feita no PDV assina na TSE (fake), sincroniza e aparece no backoffice
+   (dashboard "Hoje" e Fiskal → Verkäufe).
 
 ## Atrás de um nginx existente (VPS compartilhado)
 
@@ -75,6 +78,6 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec db \
 
 ## Fora deste deploy
 
-pos-web/terminal (são apps de Kasse, não fazem sentido públicos), monitoramento,
+Terminal Electron (o pos-web em `/pos` é o PDV demo no browser), monitoramento,
 backups automáticos agendados, submissão ELSTER. A branch `alt-implementation` tem um
 script de referência com nginx/backup-cron caso se queira evoluir isso depois.
