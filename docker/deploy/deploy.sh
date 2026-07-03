@@ -37,7 +37,9 @@ setup() {
   log "SETUP — provisionando o VPS"
   if [[ $EUID -ne 0 ]]; then err "setup precisa de root"; exit 1; fi
 
-  apt-get update -qq
+  # tolera repositórios de TERCEIROS quebrados no VPS (ex. PPA sem release);
+  # os pacotes abaixo vêm dos repos principais
+  apt-get update -qq || warn "apt update falhou parcialmente (repo de terceiros quebrado?) — seguindo"
   apt-get install -y -qq curl git ufw ca-certificates openssl
 
   if ! command -v docker >/dev/null 2>&1; then
@@ -49,11 +51,16 @@ setup() {
   fi
   docker compose version >/dev/null 2>&1 || apt-get install -y -qq docker-compose-plugin
 
-  log "firewall (ufw): 22/80/443"
+  log "firewall (ufw): liberando 22/80/443"
   ufw allow 22/tcp >/dev/null
   ufw allow 80/tcp >/dev/null
   ufw allow 443/tcp >/dev/null
-  ufw --force enable >/dev/null
+  if ufw status | grep -q "Status: active"; then
+    log "ufw já ativo — regras adicionadas"
+  else
+    warn "ufw INATIVO — não habilitei automaticamente (VPS compartilhado pode ter"
+    warn "outros serviços em portas não listadas). Revise e rode 'ufw enable' você mesmo."
+  fi
 
   if [[ ! -f "$ENV_FILE" ]]; then
     log "gerando $ENV_FILE com senhas fortes…"
@@ -80,6 +87,17 @@ EOF
 deploy() {
   require_env
   log "DEPLOY — $(date -u +%FT%TZ)"
+
+  # o Caddy precisa de 80 (ACME) e 443; num VPS compartilhado pode já haver
+  # nginx/apache/outro site nessas portas
+  local busy
+  busy=$(ss -ltnp 2>/dev/null | awk '$4 ~ /:(80|443)$/ {print $4, $6}' | grep -v docker || true)
+  if [[ -n "$busy" ]]; then
+    err "portas 80/443 já ocupadas por outro processo neste VPS:"
+    echo "$busy" >&2
+    err "libere as portas OU me avise para adaptar o stack ao proxy existente."
+    exit 1
+  fi
 
   if [[ -d "$REPO_DIR/.git" ]]; then
     log "atualizando o repositório (git pull --ff-only)…"
