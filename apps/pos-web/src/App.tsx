@@ -75,7 +75,7 @@ export function App() {
       )
       setMsg('')
     } catch {
-      setMsg('PIN inválido')
+      setMsg(t('pos.login.invalidPin'))
     }
   }
 
@@ -132,9 +132,9 @@ export function App() {
     setReport(`Z-Bericht #${r.seqNr} — ${totalsLine(r.totals)}`)
   }
   async function close(): Promise<void> {
-    const counted = askCents('Kassensturz: contado (€)')
+    const counted = askCents(t('pos.shift.countedPrompt'))
     const s = await closeShift(token!, shiftId!, counted)
-    setReport(`Turno fechado — Differenz ${euro(s.differenz ?? 0)}`)
+    setReport(t('pos.shift.closedReport', { diff: euro(s.differenz ?? 0) }))
     setShiftId(null)
   }
 
@@ -143,7 +143,7 @@ export function App() {
     return (
       <div className="center-screen">
         <div className="card login-card">
-          <h1>gelato-core · Kasse</h1>
+          <h1>{t('common.appName')} · Kasse</h1>
           <input value={pin} onChange={(e) => setPin(e.target.value)} placeholder={t('auth.login.pin')} type="password" />
           <button className="btn-primary btn-big" onClick={() => void login()}>{t('auth.login.submit')}</button>
           {msg && <span className="error-text">{msg}</span>}
@@ -156,12 +156,12 @@ export function App() {
     return (
       <div className="center-screen">
         <div className="card login-card">
-          <h2>Turno fechado</h2>
+          <h2>{t('pos.shift.closed')}</h2>
           <label style={{ justifyContent: 'center' }}>
-            Float de abertura (€){' '}
+            {t('pos.shift.float')}{' '}
             <input value={float} onChange={(e) => setFloat(e.target.value)} style={{ width: 100 }} />
           </label>
-          <button className="btn-primary btn-big" onClick={() => void open()}>Abrir turno</button>
+          <button className="btn-primary btn-big" onClick={() => void open()}>{t('pos.shift.open')}</button>
           {report && <p className="report-line">{report}</p>}
         </div>
       </div>
@@ -172,11 +172,11 @@ export function App() {
     <>
       {ausfall && (
         <div className="banner-ausfall">
-          ⚠ TSE indisponível — vendas em modo Ausfall (sem assinatura). Documentado e sincronizado.
+          {t('pos.ausfall.banner')}
         </div>
       )}
       <header className="topbar">
-        <span className="brand">gelato-core · Kasse</span>
+        <span className="brand">{t('common.appName')} · Kasse</span>
         <div className="seg">
           <button className={mode === 'im_haus' ? 'active' : ''} onClick={() => setMode('im_haus')}>{t('pos.mode.im_haus')}</button>
           <button className={mode === 'ausser_haus' ? 'active' : ''} onClick={() => setMode('ausser_haus')}>{t('pos.mode.ausser_haus')}</button>
@@ -204,16 +204,16 @@ export function App() {
         </div>
         <div>
           <div className="card actions">
-            <h3>Kasse</h3>
+            <h3>{t('pos.cash.title')}</h3>
             <div className="actions-row">
-              <button onClick={() => void cashMovement(token, shiftId, 'sangria', askCents('Sangria (€)'))}>Sangria</button>
-              <button onClick={() => void cashMovement(token, shiftId, 'suprimento', askCents('Suprimento (€)'))}>Suprimento</button>
-              <button onClick={() => void drawerOpen(token)}>Gaveta</button>
+              <button onClick={() => void cashMovement(token, shiftId, 'sangria', askCents(`${t('pos.cash.sangria')} (€)`))}>{t('pos.cash.sangria')}</button>
+              <button onClick={() => void cashMovement(token, shiftId, 'suprimento', askCents(`${t('pos.cash.suprimento')} (€)`))}>{t('pos.cash.suprimento')}</button>
+              <button onClick={() => void drawerOpen(token)}>{t('pos.cash.drawer')}</button>
             </div>
             <div className="actions-row">
               <button onClick={() => void doX()}>X-Bericht</button>
               <button onClick={() => void doZ()}>Z-Bericht</button>
-              <button onClick={() => void close()}>Fechar turno</button>
+              <button onClick={() => void close()}>{t('pos.shift.close')}</button>
             </div>
             {report && <p className="report-line">{report}</p>}
           </div>
@@ -222,7 +222,7 @@ export function App() {
             {qr ? (
               <div className="qr-box"><img src={qr} alt="QR" /></div>
             ) : (
-              <p className="muted">{ausfall ? 'TSE-Ausfall — sem QR' : '—'}</p>
+              <p className="muted">{ausfall ? t('pos.ausfall.noQr') : '—'}</p>
             )}
           </div>
         </div>

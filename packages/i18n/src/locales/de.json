@@ -27,7 +27,12 @@
       "net": "Netto",
       "vat": "MwSt",
       "total": "Summe"
-    }
+    },
+    "login": { "invalidPin": "PIN ungültig" },
+    "shift": { "closed": "Schicht geschlossen", "float": "Wechselgeld (€)", "open": "Schicht öffnen", "close": "Schicht schließen", "countedPrompt": "Kassensturz: gezählt (€)", "closedReport": "Schicht geschlossen — Differenz {{diff}}" },
+    "cash": { "title": "Kasse", "sangria": "Entnahme", "suprimento": "Einlage", "drawer": "Schublade" },
+    "ausfall": { "banner": "⚠ TSE nicht verfügbar — Verkäufe im Ausfall-Modus (ohne Signatur). Dokumentiert und synchronisiert.", "noQr": "TSE-Ausfall — kein QR" },
+    "tables": { "title": "Saal (Tische)", "hint": "Klick öffnet die Rechnung · Ziehen verschiebt den Tisch", "tab": "Rechnung", "remaining": "(Rest {{value}})", "variant": "Variante", "line": "Position: {{value}} (netto)", "payAll": "Alles zahlen", "splitIn": "Split in", "payPart": "1 Teil zahlen", "targetTable": "— Ziel-Tisch —", "transfer": "Übertragen", "settled": "Tisch beglichen", "paidPartial": "Bezahlt {{paid}} — Rest {{remaining}}" }
   },
   "backoffice": {
     "sales": { "loadMore": "Mehr laden", "date": "Datum" },

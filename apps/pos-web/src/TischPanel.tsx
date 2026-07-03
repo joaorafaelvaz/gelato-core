@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { signWithFallback, buildSaleLine, type TseProvider, type TaxRate } from '@gelato/compliance'
 import {
   listTables,
@@ -56,6 +57,7 @@ export function TischPanel({
   rates: TaxRate[]
   tse: TseProvider
 }) {
+  const { t } = useTranslation()
   const [tables, setTables] = useState<TableRow[]>([])
   const [session, setSession] = useState<SessionView | null>(null)
   const [msg, setMsg] = useState('')
@@ -72,8 +74,8 @@ export function TischPanel({
   }
   useEffect(refresh, [token, kasse])
 
-  async function open(t: TableRow): Promise<void> {
-    const id = t.openSessionId ?? (await openTable(token, t.id, kasse)).id
+  async function open(tbl: TableRow): Promise<void> {
+    const id = tbl.openSessionId ?? (await openTable(token, tbl.id, kasse)).id
     setSession(await getSession(token, id))
     setSel(null)
     refresh()
@@ -151,11 +153,11 @@ export function TischPanel({
       tse: tse_transaction,
     })
     if (r.settled) {
-      setMsg('Mesa quitada')
+      setMsg(t('pos.tables.settled'))
       setSession(null)
       refresh()
     } else {
-      setMsg(`Pago ${euro(pay)} — resta ${euro(r.remainingGross)}`)
+      setMsg(t('pos.tables.paidPartial', { paid: euro(pay), remaining: euro(r.remainingGross) }))
       setSession(await getSession(token, session.id))
     }
   }
@@ -173,22 +175,22 @@ export function TischPanel({
     refresh()
   }
 
-  const freeTables = tables.filter((t) => !t.openSessionId && t.id !== session?.tischId)
+  const freeTables = tables.filter((tbl) => !tbl.openSessionId && tbl.id !== session?.tischId)
 
   return (
     <section className="card">
-      <h3>Salão (Tische)</h3>
+      <h3>{t('pos.tables.title')}</h3>
       <p className="muted" style={{ margin: '0 0 8px' }}>
-        Clique abre a conta · arraste reposiciona a mesa
+        {t('pos.tables.hint')}
       </p>
-      <Tischplan tables={tables} onOpen={(t) => void open(t)} onMove={(id, x, y) => void moveTable(id, x, y)} />
+      <Tischplan tables={tables} onOpen={(tbl) => void open(tbl)} onMove={(id, x, y) => void moveTable(id, x, y)} />
 
       {session && (
         <div style={{ marginTop: 12 }}>
           <h3>
-            Conta {session.tischId} — {euro(session.tab.totalGross)}
+            {t('pos.tables.tab')} {session.tischId} — {euro(session.tab.totalGross)}
             {session.remaining && session.remaining.totalGross !== session.tab.totalGross
-              ? ` (resta ${euro(session.remaining.totalGross)})`
+              ? ` ${t('pos.tables.remaining', { value: euro(session.remaining.totalGross) })}`
               : ''}
           </h3>
 
@@ -211,7 +213,7 @@ export function TischPanel({
               <strong>{sel.name}</strong>
               {sel.variants && sel.variants.length > 0 && (
                 <label style={{ marginLeft: 8 }}>
-                  Variante{' '}
+                  {t('pos.tables.variant')}{' '}
                   <select value={variantId} onChange={(e) => setVariantId(e.target.value)}>
                     {sel.variants.map((v) => (
                       <option key={v.id} value={v.id}>
@@ -236,9 +238,9 @@ export function TischPanel({
                 </div>
               )}
               <div className="actions-row" style={{ marginTop: 10 }}>
-                <span className="muted">Linha: {euro(composeLine(sel).line.unitNet)} (net)</span>
-                <button className="btn-primary" onClick={() => void addLine()}>Adicionar</button>
-                <button onClick={() => setSel(null)}>Cancelar</button>
+                <span className="muted">{t('pos.tables.line', { value: euro(composeLine(sel).line.unitNet) })}</span>
+                <button className="btn-primary" onClick={() => void addLine()}>{t('pos.product.add')}</button>
+                <button onClick={() => setSel(null)}>{t('common.cancel')}</button>
               </div>
             </div>
           )}
@@ -246,10 +248,10 @@ export function TischPanel({
           {/* Pagamento / split / transferência */}
           <div className="actions-row" style={{ marginTop: 10 }}>
             <button className="btn-primary" onClick={() => void payAmount()} style={{ flex: 1 }}>
-              Pagar tudo
+              {t('pos.tables.payAll')}
             </button>
             <label>
-              Split em{' '}
+              {t('pos.tables.splitIn')}{' '}
               <input
                 type="number"
                 min={1}
@@ -258,20 +260,20 @@ export function TischPanel({
                 style={{ width: 64 }}
               />
             </label>
-            <button onClick={splitPay}>Pagar 1 parte</button>
+            <button onClick={splitPay}>{t('pos.tables.payPart')}</button>
           </div>
 
           <div className="actions-row" style={{ marginTop: 8 }}>
             <select value={transferTo} onChange={(e) => setTransferTo(e.target.value)}>
-              <option value="">— mesa destino —</option>
-              {freeTables.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
+              <option value="">{t('pos.tables.targetTable')}</option>
+              {freeTables.map((tbl) => (
+                <option key={tbl.id} value={tbl.id}>
+                  {tbl.name}
                 </option>
               ))}
             </select>
             <button onClick={() => void doTransfer()} disabled={!transferTo}>
-              Transferir
+              {t('pos.tables.transfer')}
             </button>
           </div>
         </div>

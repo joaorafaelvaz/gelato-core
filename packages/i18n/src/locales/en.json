@@ -27,7 +27,12 @@
       "net": "Net",
       "vat": "VAT",
       "total": "Total"
-    }
+    },
+    "login": { "invalidPin": "Invalid PIN" },
+    "shift": { "closed": "Shift closed", "float": "Opening float (€)", "open": "Open shift", "close": "Close shift", "countedPrompt": "Kassensturz: counted (€)", "closedReport": "Shift closed — Differenz {{diff}}" },
+    "cash": { "title": "Kasse", "sangria": "Cash out", "suprimento": "Cash in", "drawer": "Drawer" },
+    "ausfall": { "banner": "⚠ TSE unavailable — sales in Ausfall mode (unsigned). Documented and synced.", "noQr": "TSE-Ausfall — no QR" },
+    "tables": { "title": "Floor (Tische)", "hint": "Click opens the tab · drag repositions the table", "tab": "Tab", "remaining": "(remaining {{value}})", "variant": "Variant", "line": "Line: {{value}} (net)", "payAll": "Pay all", "splitIn": "Split in", "payPart": "Pay 1 part", "targetTable": "— target table —", "transfer": "Transfer", "settled": "Table settled", "paidPartial": "Paid {{paid}} — remaining {{remaining}}" }
   },
   "backoffice": {
     "sales": { "loadMore": "Load more", "date": "Date" },
