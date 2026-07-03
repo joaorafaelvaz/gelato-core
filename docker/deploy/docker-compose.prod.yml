@@ -1,0 +1,64 @@
+# Stack de produção-demo em um VPS: db (interno) + api + caddy (TLS + estáticos).
+# Rodar SEMPRE via deploy.sh (que carrega o .env.prod). Projeto compose: gelato_prod.
+name: gelato_prod
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gelato_owner
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:?defina no .env.prod}
+      POSTGRES_DB: gelato
+      APP_DB_PASSWORD: ${POSTGRES_APP_PASSWORD:?defina no .env.prod}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gelato_owner -d gelato"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    # sem ports: o banco só existe na rede interna do compose
+
+  api:
+    build:
+      context: ../..
+      dockerfile: docker/deploy/Dockerfile.api
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgresql://gelato_app:${POSTGRES_APP_PASSWORD}@db:5432/gelato?schema=public
+      DATABASE_URL_OWNER: postgresql://gelato_owner:${POSTGRES_OWNER_PASSWORD}@db:5432/gelato?schema=public
+      JWT_SECRET: ${JWT_SECRET:?defina no .env.prod}
+      # TSE: sem credenciais fiskaly => FakeTseProvider (deploy DEMO, não fiscal)
+      FISKALY_BASE_URL: ${FISKALY_BASE_URL:-https://kassensichv-middleware.fiskaly.com}
+      FISKALY_API_KEY: ${FISKALY_API_KEY:-}
+      FISKALY_API_SECRET: ${FISKALY_API_SECRET:-}
+      FISKALY_TSS_ID: ${FISKALY_TSS_ID:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    # sem ports: só o caddy fala com a api
+
+  caddy:
+    build:
+      context: ../..
+      dockerfile: docker/deploy/Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?defina no .env.prod}
+      ACME_EMAIL: ${ACME_EMAIL:?defina no .env.prod}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:

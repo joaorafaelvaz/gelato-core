@@ -1,0 +1,19 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	# API na mesma origem: /api/orders -> api:3000/orders (prefixo removido)
+	handle_path /api/* {
+		reverse_proxy api:3000
+	}
+
+	# SPA do backoffice (rotas por hash; fallback p/ index.html por segurança)
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
