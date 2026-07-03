@@ -141,25 +141,29 @@ export function App() {
   // --- telas ---
   if (!token) {
     return (
-      <div style={{ fontFamily: 'system-ui', display: 'grid', placeItems: 'center', height: '100vh', gap: 8 }}>
-        <h1>🍦 gelato-core · Web Kasse</h1>
-        <input value={pin} onChange={(e) => setPin(e.target.value)} placeholder={t('auth.login.pin')} type="password" />
-        <button onClick={() => void login()}>{t('auth.login.submit')}</button>
-        {msg && <span style={{ color: 'crimson' }}>{msg}</span>}
+      <div className="center-screen">
+        <div className="card login-card">
+          <h1>gelato-core · Kasse</h1>
+          <input value={pin} onChange={(e) => setPin(e.target.value)} placeholder={t('auth.login.pin')} type="password" />
+          <button className="btn-primary btn-big" onClick={() => void login()}>{t('auth.login.submit')}</button>
+          {msg && <span className="error-text">{msg}</span>}
+        </div>
       </div>
     )
   }
 
   if (!shiftId) {
     return (
-      <div style={{ fontFamily: 'system-ui', display: 'grid', placeItems: 'center', height: '100vh', gap: 8 }}>
-        <h2>Turno fechado</h2>
-        <label>
-          Float de abertura (€){' '}
-          <input value={float} onChange={(e) => setFloat(e.target.value)} style={{ width: 80 }} />
-        </label>
-        <button onClick={() => void open()}>Abrir turno</button>
-        {report && <p>{report}</p>}
+      <div className="center-screen">
+        <div className="card login-card">
+          <h2>Turno fechado</h2>
+          <label style={{ justifyContent: 'center' }}>
+            Float de abertura (€){' '}
+            <input value={float} onChange={(e) => setFloat(e.target.value)} style={{ width: 100 }} />
+          </label>
+          <button className="btn-primary btn-big" onClick={() => void open()}>Abrir turno</button>
+          {report && <p className="report-line">{report}</p>}
+        </div>
       </div>
     )
   }
@@ -167,50 +171,63 @@ export function App() {
   return (
     <>
       {ausfall && (
-        <div style={{ background: '#b91c1c', color: 'white', padding: 8, fontFamily: 'system-ui' }}>
+        <div className="banner-ausfall">
           ⚠ TSE indisponível — vendas em modo Ausfall (sem assinatura). Documentado e sincronizado.
         </div>
       )}
-      <div style={{ fontFamily: 'system-ui', padding: 16, display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div>
-            <button onClick={() => setMode('im_haus')} disabled={mode === 'im_haus'}>{t('pos.mode.im_haus')}</button>
-            <button onClick={() => setMode('ausser_haus')} disabled={mode === 'ausser_haus'}>{t('pos.mode.ausser_haus')}</button>
-          </div>
+      <header className="topbar">
+        <span className="brand">gelato-core · Kasse</span>
+        <div className="seg">
+          <button className={mode === 'im_haus' ? 'active' : ''} onClick={() => setMode('im_haus')}>{t('pos.mode.im_haus')}</button>
+          <button className={mode === 'ausser_haus' ? 'active' : ''} onClick={() => setMode('ausser_haus')}>{t('pos.mode.ausser_haus')}</button>
+        </div>
+        <div className="topbar-right">
           <select value={i18n.language} onChange={(e) => void i18n.changeLanguage(e.target.value)}>
             {SUPPORTED_LOCALES.map((l) => <option key={l} value={l}>{l.toUpperCase()}</option>)}
           </select>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {products.map((p) => (
-            <button key={p.id} onClick={() => add(p.id)} style={{ padding: 16 }}>
-              {p.name}<br />{euro(p.netCents)}{cart[p.id] ? ` ×${cart[p.id]}` : ''}
-            </button>
-          ))}
+      </header>
+      <div className="pos-main">
+        <div className="card">
+          <div className="tiles">
+            {products.map((p) => (
+              <button key={p.id} className="tile" onClick={() => add(p.id)}>
+                {p.name}
+                <span className="price">{euro(p.netCents)}</span>
+                {cart[p.id] ? <span className="count">×{cart[p.id]}</span> : null}
+              </button>
+            ))}
+          </div>
+          <button className="btn-primary btn-big" onClick={() => void finalize()} style={{ marginTop: 12 }}>
+            {t('pos.finalize')}
+          </button>
         </div>
-        <button onClick={() => void finalize()} style={{ marginTop: 12, padding: 12, width: '100%' }}>
-          {t('pos.finalize')}
-        </button>
+        <div>
+          <div className="card actions">
+            <h3>Kasse</h3>
+            <div className="actions-row">
+              <button onClick={() => void cashMovement(token, shiftId, 'sangria', askCents('Sangria (€)'))}>Sangria</button>
+              <button onClick={() => void cashMovement(token, shiftId, 'suprimento', askCents('Suprimento (€)'))}>Suprimento</button>
+              <button onClick={() => void drawerOpen(token)}>Gaveta</button>
+            </div>
+            <div className="actions-row">
+              <button onClick={() => void doX()}>X-Bericht</button>
+              <button onClick={() => void doZ()}>Z-Bericht</button>
+              <button onClick={() => void close()}>Fechar turno</button>
+            </div>
+            {report && <p className="report-line">{report}</p>}
+          </div>
+          <div className="card" style={{ marginTop: 12 }}>
+            <h3>{t('pos.receipt.title')} (QR)</h3>
+            {qr ? (
+              <div className="qr-box"><img src={qr} alt="QR" /></div>
+            ) : (
+              <p className="muted">{ausfall ? 'TSE-Ausfall — sem QR' : '—'}</p>
+            )}
+          </div>
+        </div>
       </div>
-      <div style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
-        <h3>Kasse</h3>
-        <button onClick={() => void cashMovement(token, shiftId, 'sangria', askCents('Sangria (€)'))}>Sangria</button>
-        <button onClick={() => void cashMovement(token, shiftId, 'suprimento', askCents('Suprimento (€)'))}>Suprimento</button>
-        <button onClick={() => void drawerOpen(token)}>Gaveta</button>
-        <button onClick={() => void doX()}>X-Bericht</button>
-        <button onClick={() => void doZ()}>Z-Bericht</button>
-        <button onClick={() => void close()} style={{ marginTop: 8 }}>Fechar turno</button>
-        {report && <p style={{ fontSize: 13 }}>{report}</p>}
-        <h3>{t('pos.receipt.title')} (QR)</h3>
-        {qr ? (
-          <img src={qr} alt="QR" style={{ width: '100%' }} />
-        ) : (
-          <p>{ausfall ? 'TSE-Ausfall — sem QR' : '—'}</p>
-        )}
-      </div>
-      </div>
-      <div style={{ fontFamily: 'system-ui', padding: 16 }}>
+      <div className="pos-salon">
         <TischPanel token={token} kasse={KASSE} products={products} rates={rates} tse={tse} />
       </div>
     </>

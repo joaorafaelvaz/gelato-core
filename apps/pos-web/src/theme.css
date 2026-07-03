@@ -1,0 +1,77 @@
+/* Tema da Kasse — mesmos tokens do backoffice (tema sóbrio), adaptado p/ toque:
+   alvos grandes, tiles de produto, planta do salão. Apresentação apenas. */
+:root {
+  --bg: #F4F5F7;
+  --surface: #FFFFFF;
+  --header: #1E2732;
+  --header-muted: #9DA9B8;
+  --header-border: #3A4656;
+  --border: #E2E5EA;
+  --text: #232A33;
+  --text-muted: #71798A;
+  --accent: #185FA5;
+  --accent-bright: #378ADD;
+  --amber-bg: #FAEEDA; --amber-text: #854F0B; --amber-strong: #633806;
+  --red-bg: #FCEBEB; --red-text: #A32D2D; --red-strong: #791F1F;
+  --green-bg: #EAF3DE; --green-text: #3B6D11;
+  --radius: 8px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, 'Segoe UI', sans-serif; }
+h1 { font-size: 20px; font-weight: 600; margin: 0 0 12px; }
+h2 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
+h3 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+
+.topbar { display: flex; align-items: center; gap: 12px; background: var(--header); color: #fff; padding: 10px 16px; flex-wrap: wrap; }
+.brand { font-weight: 600; }
+.topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.topbar-right select, .topbar-right button { background: transparent; color: #fff; border: 1px solid var(--header-border); border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+.topbar-right select option { color: var(--text); }
+
+.seg { display: inline-flex; border: 1px solid var(--header-border); border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; color: var(--header-muted); border: none; padding: 8px 14px; font: inherit; cursor: pointer; }
+.seg button.active { background: var(--accent-bright); color: #fff; }
+
+.banner-ausfall { background: var(--red-strong); color: #fff; padding: 10px 16px; font-weight: 600; }
+
+.pos-main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 16px; align-items: start; }
+@media (max-width: 900px) { .pos-main { grid-template-columns: 1fr; } }
+.pos-salon { padding: 0 16px 32px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.card + .card { margin-top: 12px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.tile { min-height: 72px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font: inherit; cursor: pointer; text-align: center; }
+.tile:hover { border-color: var(--accent-bright); }
+.tile.selected { border: 2px solid var(--accent); font-weight: 600; }
+.tile .price { color: var(--text-muted); font-size: 13px; display: block; }
+.tile .count { display: inline-block; margin-top: 4px; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 10px; font-size: 13px; font-weight: 600; }
+
+button { padding: 10px 16px; min-height: 44px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font: inherit; color: inherit; cursor: pointer; }
+button:hover { border-color: var(--accent-bright); }
+button:disabled { opacity: 0.5; cursor: default; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn-big { width: 100%; min-height: 56px; font-size: 17px; }
+input, select { padding: 10px 12px; min-height: 44px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font: inherit; color: inherit; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 1px; }
+label { display: inline-flex; align-items: center; gap: 6px; }
+input[type='checkbox'] { min-height: auto; width: 18px; height: 18px; }
+
+.actions { display: grid; gap: 8px; }
+.actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.center-screen { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login-card { width: 320px; display: grid; gap: 12px; text-align: center; }
+.login-card input { text-align: center; font-size: 20px; letter-spacing: 4px; }
+.error-text { color: var(--red-text); }
+.muted { color: var(--text-muted); font-size: 13px; }
+.report-line { background: var(--bg); border-radius: var(--radius); padding: 8px 10px; font-size: 13px; }
+
+.plan { position: relative; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.plan-table { position: absolute; display: grid; place-items: center; border-radius: var(--radius); cursor: grab; user-select: none; touch-action: none; text-align: center; font-size: 13px; border: 1px solid; }
+.plan-table.free { background: var(--green-bg); border-color: var(--green-text); color: var(--green-text); }
+.plan-table.occupied { background: var(--amber-bg); border-color: var(--amber-text); color: var(--amber-strong); font-weight: 600; }
+
+.qr-box { display: grid; place-items: center; background: var(--bg); border-radius: var(--radius); padding: 8px; }
+.qr-box img { width: 100%; max-width: 220px; }

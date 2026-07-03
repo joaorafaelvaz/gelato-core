@@ -176,29 +176,29 @@ export function TischPanel({
   const freeTables = tables.filter((t) => !t.openSessionId && t.id !== session?.tischId)
 
   return (
-    <section style={{ marginTop: 16, borderTop: '1px solid #ddd', paddingTop: 8 }}>
+    <section className="card">
       <h3>Salão (Tische)</h3>
-      <p style={{ fontSize: 12, color: '#666', margin: '0 0 6px' }}>
+      <p className="muted" style={{ margin: '0 0 8px' }}>
         Clique abre a conta · arraste reposiciona a mesa
       </p>
       <Tischplan tables={tables} onOpen={(t) => void open(t)} onMove={(id, x, y) => void moveTable(id, x, y)} />
 
       {session && (
-        <div style={{ marginTop: 8 }}>
-          <p style={{ fontWeight: 600 }}>
+        <div style={{ marginTop: 12 }}>
+          <h3>
             Conta {session.tischId} — {euro(session.tab.totalGross)}
             {session.remaining && session.remaining.totalGross !== session.tab.totalGross
               ? ` (resta ${euro(session.remaining.totalGross)})`
               : ''}
-          </p>
+          </h3>
 
           {/* Seleção de produto */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          <div className="tiles">
             {products.map((p) => (
               <button
                 key={p.id}
+                className={sel?.id === p.id ? 'tile selected' : 'tile'}
                 onClick={() => selectProduct(p)}
-                style={{ padding: 8, fontWeight: sel?.id === p.id ? 700 : 400 }}
               >
                 {p.name}
               </button>
@@ -207,7 +207,7 @@ export function TischPanel({
 
           {/* Composer: variante + modifiers do produto selecionado */}
           {sel && (
-            <div style={{ marginTop: 8, padding: 8, background: '#f4f4f5', borderRadius: 6 }}>
+            <div className="card" style={{ marginTop: 10, background: 'var(--bg)' }}>
               <strong>{sel.name}</strong>
               {sel.variants && sel.variants.length > 0 && (
                 <label style={{ marginLeft: 8 }}>
@@ -222,7 +222,7 @@ export function TischPanel({
                 </label>
               )}
               {sel.modifiers && sel.modifiers.length > 0 && (
-                <div style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div className="actions-row" style={{ marginTop: 8 }}>
                   {sel.modifiers.map((m) => (
                     <label key={m.id}>
                       <input
@@ -235,17 +235,17 @@ export function TischPanel({
                   ))}
                 </div>
               )}
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Linha: {euro(composeLine(sel).line.unitNet)} (net)</span>
-                <button onClick={() => void addLine()}>Adicionar</button>
+              <div className="actions-row" style={{ marginTop: 10 }}>
+                <span className="muted">Linha: {euro(composeLine(sel).line.unitNet)} (net)</span>
+                <button className="btn-primary" onClick={() => void addLine()}>Adicionar</button>
                 <button onClick={() => setSel(null)}>Cancelar</button>
               </div>
             </div>
           )}
 
           {/* Pagamento / split / transferência */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => void payAmount()} style={{ flex: 1, padding: 8 }}>
+          <div className="actions-row" style={{ marginTop: 10 }}>
+            <button className="btn-primary" onClick={() => void payAmount()} style={{ flex: 1 }}>
               Pagar tudo
             </button>
             <label>
@@ -255,15 +255,13 @@ export function TischPanel({
                 min={1}
                 value={parts}
                 onChange={(e) => setParts(e.target.value)}
-                style={{ width: 48 }}
+                style={{ width: 64 }}
               />
             </label>
-            <button onClick={splitPay} style={{ padding: 8 }}>
-              Pagar 1 parte
-            </button>
+            <button onClick={splitPay}>Pagar 1 parte</button>
           </div>
 
-          <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
+          <div className="actions-row" style={{ marginTop: 8 }}>
             <select value={transferTo} onChange={(e) => setTransferTo(e.target.value)}>
               <option value="">— mesa destino —</option>
               {freeTables.map((t) => (
@@ -278,7 +276,7 @@ export function TischPanel({
           </div>
         </div>
       )}
-      {msg && <p style={{ fontSize: 13 }}>{msg}</p>}
+      {msg && <p className="report-line" style={{ marginTop: 8 }}>{msg}</p>}
     </section>
   )
 }
@@ -324,19 +322,20 @@ function Tischplan({
   }
 
   return (
-    <div ref={ref} style={{ position: 'relative', width: W, height: H, background: '#fafafa', border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden' }}>
+    <div ref={ref} className="plan" style={{ width: W, height: H }}>
       {tables.map((t) => {
         const pos = drag?.id === t.id ? { x: drag.x, y: drag.y } : { x: t.posX ?? 0, y: t.posY ?? 0 }
         const occ = tableState(t) === 'occupied'
         return (
           <div
             key={t.id}
+            className={occ ? 'plan-table occupied' : 'plan-table free'}
             onPointerDown={(e) => down(e, t)}
             onPointerMove={move}
             onPointerUp={() => up(t)}
-            style={{ position: 'absolute', left: pos.x, top: pos.y, width: TW, height: TH, background: occ ? '#fde68a' : '#dcfce7', border: '1px solid #999', borderRadius: 8, display: 'grid', placeItems: 'center', cursor: 'grab', userSelect: 'none', touchAction: 'none' }}
+            style={{ left: pos.x, top: pos.y, width: TW, height: TH }}
           >
-            <div style={{ textAlign: 'center', fontSize: 13 }}>
+            <div>
               {t.name}
               {occ && t.openTotalGross != null ? (
                 <>
