@@ -51,15 +51,19 @@ setup() {
   fi
   docker compose version >/dev/null 2>&1 || apt-get install -y -qq docker-compose-plugin
 
-  log "firewall (ufw): liberando 22/80/443"
-  ufw allow 22/tcp >/dev/null
-  ufw allow 80/tcp >/dev/null
-  ufw allow 443/tcp >/dev/null
-  if ufw status | grep -q "Status: active"; then
-    log "ufw já ativo — regras adicionadas"
+  log "firewall (ufw): liberando 22/80/443 (não-fatal)"
+  if command -v ufw >/dev/null 2>&1 && ufw allow 22/tcp >/dev/null 2>&1; then
+    ufw allow 80/tcp >/dev/null 2>&1 || true
+    ufw allow 443/tcp >/dev/null 2>&1 || true
+    if ufw status 2>/dev/null | grep -q "Status: active"; then
+      log "ufw ativo — regras adicionadas"
+    else
+      warn "ufw INATIVO — não habilitei automaticamente (pode haver outros serviços"
+      warn "neste host). Revise e rode 'ufw enable' você mesmo."
+    fi
   else
-    warn "ufw INATIVO — não habilitei automaticamente (VPS compartilhado pode ter"
-    warn "outros serviços em portas não listadas). Revise e rode 'ufw enable' você mesmo."
+    warn "ufw indisponível/quebrado neste host — firewall PULADO."
+    warn "Configure manualmente depois (só 22/80/443 precisam estar abertas)."
   fi
 
   if [[ ! -f "$ENV_FILE" ]]; then
