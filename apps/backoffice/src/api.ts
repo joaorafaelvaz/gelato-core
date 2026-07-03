@@ -183,6 +183,12 @@ export interface ProductRow {
   id: string
   name: string
   netCents: number
+  variants?: { id: string; name: string; netCents: number }[]
+}
+
+export interface TaxRateRow {
+  code: string
+  rate: string | number
 }
 
 export interface OrdersSummary {

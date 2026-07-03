@@ -13,6 +13,9 @@ export function Stock({ token }: { token: string }) {
   const toast = useToast()
   const [selected, setSelected] = useState('')
   const [qty, setQty] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newUnit, setNewUnit] = useState('')
+  const [newMin, setNewMin] = useState('')
   const levels = useFetch(() => apiGet<StockLevel[]>('/stock', token), [token])
   const alerts = useFetch(() => apiGet<StockAlert[]>('/stock/alerts', token), [token])
 
@@ -37,6 +40,26 @@ export function Stock({ token }: { token: string }) {
   async function count(): Promise<void> {
     if (!selected || !qty) return
     await mutate('/stock/count', { stock_item_id: selected, counted: Number(qty) })
+  }
+
+  async function createItem(e: FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!newName || !newUnit) return
+    try {
+      await apiPost('/stock/items', token, {
+        name: newName,
+        unit: newUnit,
+        ...(newMin !== '' ? { min_stock: Number(newMin) } : {}),
+      })
+      toast('success', t('backoffice.common.saved'))
+      setNewName('')
+      setNewUnit('')
+      setNewMin('')
+      levels.reload()
+      alerts.reload()
+    } catch {
+      toast('error', t('backoffice.common.actionFailed'))
+    }
   }
 
   return (
@@ -88,6 +111,19 @@ export function Stock({ token }: { token: string }) {
         <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} placeholder={t('backoffice.stock.qty')} />
         <button type="submit">{t('backoffice.stock.receive')}</button>
         <button type="button" onClick={() => void count()}>{t('backoffice.stock.count')}</button>
+      </form>
+      <h3>{t('backoffice.stock.newItem')}</h3>
+      <form onSubmit={createItem} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('backoffice.stock.item')} />
+        <input value={newUnit} onChange={(e) => setNewUnit(e.target.value)} placeholder={t('backoffice.stock.unit')} style={{ width: 100 }} />
+        <input
+          type="number"
+          value={newMin}
+          onChange={(e) => setNewMin(e.target.value)}
+          placeholder={t('backoffice.stock.min')}
+          style={{ width: 100 }}
+        />
+        <button type="submit">{t('backoffice.common.create')}</button>
       </form>
     </section>
   )
