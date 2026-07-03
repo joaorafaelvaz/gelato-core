@@ -2,7 +2,9 @@
 	email {$ACME_EMAIL}
 }
 
-{$DOMAIN} {
+# CADDY_SITE: o domínio (edge, TLS automático) OU ":80" (atrás de um proxy
+# existente que termina o TLS — ex. nginx do host).
+{$CADDY_SITE} {
 	encode gzip
 
 	# API na mesma origem: /api/orders -> api:3000/orders (prefixo removido)

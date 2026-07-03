@@ -46,12 +46,16 @@ services:
       context: ../..
       dockerfile: docker/deploy/Dockerfile.web
     restart: unless-stopped
+    # modo edge (default): 80/443 públicos, TLS no Caddy.
+    # modo atrás-de-proxy: no .env.prod, CADDY_HTTP_BIND=127.0.0.1:8080,
+    # CADDY_HTTPS_BIND=127.0.0.1:8443 e CADDY_SITE=:80 (nginx do host faz o TLS).
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CADDY_HTTP_BIND:-80}:80"
+      - "${CADDY_HTTPS_BIND:-443}:443"
     environment:
       DOMAIN: ${DOMAIN:?defina no .env.prod}
       ACME_EMAIL: ${ACME_EMAIL:?defina no .env.prod}
+      CADDY_SITE: ${CADDY_SITE:-${DOMAIN}}
     volumes:
       - caddy_data:/data
       - caddy_config:/config

@@ -38,6 +38,26 @@ Internet ──443──> Caddy ──/api/*──> api:3000 (NestJS, role gelat
    ```
 3. Abra `https://gelato.linkwise.digital` → login `admin@demo.test` / `admin123`.
 
+## Atrás de um nginx existente (VPS compartilhado)
+
+Se o VPS já serve outros sites na 80/443 (o `deploy.sh` detecta e aborta), o nginx do
+host continua sendo o edge/TLS e o stack do gelato sobe interno em `127.0.0.1:8080`:
+
+1. Acrescente ao `.env.prod`:
+   ```
+   CADDY_SITE=:80
+   CADDY_HTTP_BIND=127.0.0.1:8080
+   CADDY_HTTPS_BIND=127.0.0.1:8443
+   ```
+2. Vhost no nginx do host (exemplo pronto em `docker/deploy/nginx-gelato.conf.example`):
+   ```bash
+   cp docker/deploy/nginx-gelato.conf.example /etc/nginx/sites-available/gelato
+   ln -s /etc/nginx/sites-available/gelato /etc/nginx/sites-enabled/gelato
+   nginx -t && systemctl reload nginx
+   certbot --nginx -d gelato.linkwise.digital   # TLS pelo certbot do host
+   ```
+3. `./deploy.sh deploy` (o health check passa a mirar `127.0.0.1:8080`).
+
 ## Operação
 
 | Comando | Faz |

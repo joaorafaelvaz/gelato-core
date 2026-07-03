@@ -92,15 +92,24 @@ deploy() {
   require_env
   log "DEPLOY — $(date -u +%FT%TZ)"
 
-  # o Caddy precisa de 80 (ACME) e 443; num VPS compartilhado pode já haver
-  # nginx/apache/outro site nessas portas
-  local busy
-  busy=$(ss -ltnp 2>/dev/null | awk '$4 ~ /:(80|443)$/ {print $4, $6}' | grep -v docker || true)
-  if [[ -n "$busy" ]]; then
-    err "portas 80/443 já ocupadas por outro processo neste VPS:"
-    echo "$busy" >&2
-    err "libere as portas OU me avise para adaptar o stack ao proxy existente."
-    exit 1
+  # modo atrás-de-proxy (nginx do host termina o TLS): CADDY_HTTP_BIND=127.0.0.1:8080
+  local http_bind behind_proxy=""
+  http_bind=$(grep -E '^CADDY_HTTP_BIND=' "$ENV_FILE" | cut -d= -f2- || true)
+  [[ "$http_bind" == 127.0.0.1:* ]] && behind_proxy=1
+
+  if [[ -z "$behind_proxy" ]]; then
+    # modo edge: o Caddy precisa de 80 (ACME) e 443 livres
+    local busy
+    busy=$(ss -ltnp 2>/dev/null | awk '$4 ~ /:(80|443)$/ {print $4, $6}' | grep -v docker || true)
+    if [[ -n "$busy" ]]; then
+      err "portas 80/443 já ocupadas por outro processo neste VPS:"
+      echo "$busy" >&2
+      err "libere as portas OU use o modo atrás-de-proxy (ver docs/DEPLOY.md,"
+      err "seção 'Atrás de um nginx existente')."
+      exit 1
+    fi
+  else
+    log "modo atrás-de-proxy: Caddy interno em ${http_bind} (TLS fica com o nginx do host)"
   fi
 
   if [[ -d "$REPO_DIR/.git" ]]; then
@@ -124,8 +133,9 @@ deploy() {
 
   log "health check…"
   sleep 5
-  local code
-  code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/api/products || true)
+  local health_host="127.0.0.1" code
+  [[ -n "$behind_proxy" ]] && health_host="$http_bind"
+  code=$(curl -s -o /dev/null -w "%{http_code}" "http://${health_host}/api/products" || true)
   if [[ "$code" == "401" ]]; then
     log "API respondendo atrás do Caddy (401 sem token = ok)"
   else
