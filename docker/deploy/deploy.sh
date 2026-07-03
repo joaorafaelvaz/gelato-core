@@ -120,9 +120,8 @@ deploy() {
   log "build das imagens (api + web/caddy)…"
   "${COMPOSE[@]}" build --pull
 
-  log "subindo o banco…"
-  "${COMPOSE[@]}" up -d db
-  "${COMPOSE[@]}" wait db 2>/dev/null || sleep 5
+  log "subindo o banco (aguarda healthcheck)…"
+  "${COMPOSE[@]}" up -d --wait db
 
   log "migrações (prisma migrate deploy, como gelato_owner)…"
   "${COMPOSE[@]}" run --rm --no-deps --entrypoint "" api \
