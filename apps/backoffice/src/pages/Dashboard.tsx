@@ -1,33 +1,49 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiGet, type ChecklistStatusRow, type OrderRow, type OrdersSummary, type StockAlert } from '../api'
 import { useFetch } from '../useFetch'
 import { euro } from '../format'
-import { todayRange } from '../date-util'
+import { periodRange, type Period } from '../date-util'
 import { MetricCard } from '../ui/MetricCard'
 import { Spinner } from '../ui/Spinner'
 import { ErrorState } from '../ui/ErrorState'
 import { EmptyState } from '../ui/EmptyState'
 import type { PageProps } from './types'
 
+const PERIODS: Period[] = ['today', 'yesterday', 'month', 'year']
+
 export function Dashboard({ token, navigate }: PageProps) {
   const { t } = useTranslation()
-  const fromIso = todayRange(new Date()).from.toISOString()
+  const [period, setPeriod] = useState<Period>('today')
+  const range = periodRange(period, new Date())
+  const windowQ = `from=${encodeURIComponent(range.from.toISOString())}&to=${encodeURIComponent(range.to.toISOString())}`
   const summary = useFetch(
-    () => apiGet<OrdersSummary>(`/orders/summary?from=${encodeURIComponent(fromIso)}`, token),
-    [token],
+    () => apiGet<OrdersSummary>(`/orders/summary?${windowQ}`, token),
+    [token, period],
   )
   const alerts = useFetch(() => apiGet<StockAlert[]>('/stock/alerts', token), [token])
   const status = useFetch(() => apiGet<ChecklistStatusRow[]>('/checklists/status', token), [token])
-  const last = useFetch(() => apiGet<OrderRow[]>('/orders?limit=10', token), [token])
+  const last = useFetch(() => apiGet<OrderRow[]>(`/orders?${windowQ}&limit=10`, token), [token, period])
 
   const alertCount = (alerts.data ?? []).length
   const overdue = (status.data ?? []).filter((s) => s.overdue).length
 
   return (
     <section>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        {PERIODS.map((p) => (
+          <button
+            key={p}
+            className={p === period ? 'btn-primary' : undefined}
+            onClick={() => setPeriod(p)}
+          >
+            {t(`backoffice.dashboard.period.${p}`)}
+          </button>
+        ))}
+      </div>
       <div className="metrics">
         <MetricCard
-          label={t('backoffice.dashboard.salesToday')}
+          label={`${t('backoffice.dashboard.sales')} — ${t(`backoffice.dashboard.period.${period}`)}`}
           tone="accent"
           value={summary.loading ? '…' : summary.error ? '—' : euro(summary.data?.totalGross ?? 0)}
           onClick={() => navigate({ group: 'fiscal', page: 'sales' })}
