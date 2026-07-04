@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { periodRange, todayRange, type Period } from './date-util'
+import { customRange, periodRange, todayRange, type Period } from './date-util'
 
 describe('todayRange', () => {
   it('returns local midnight of the given instant', () => {
@@ -56,10 +56,34 @@ describe('periodRange', () => {
   })
 
   it('cobre todos os períodos sem sobreposição com o agora', () => {
-    const periods: Period[] = ['today', 'yesterday', 'month', 'year']
+    const periods: Exclude<Period, 'custom'>[] = ['today', 'yesterday', 'month', 'year']
     for (const p of periods) {
       const { from, to } = periodRange(p, now)
       expect(from.getTime()).toBeLessThan(to.getTime())
     }
+  })
+})
+
+describe('customRange', () => {
+  it('interpreta as datas como LOCAIS (não UTC) e o "até" é inclusivo (+1 dia)', () => {
+    const r = customRange('2026-07-01', '2026-07-03')!
+    expect([r.from.getFullYear(), r.from.getMonth(), r.from.getDate(), r.from.getHours()]).toEqual([2026, 6, 1, 0])
+    expect([r.to.getFullYear(), r.to.getMonth(), r.to.getDate()]).toEqual([2026, 6, 4])
+  })
+
+  it('um único dia: [dia 00:00, dia+1 00:00)', () => {
+    const r = customRange('2026-07-03', '2026-07-03')!
+    expect(r.to.getTime() - r.from.getTime()).toBe(24 * 3600 * 1000)
+  })
+
+  it('null quando falta data ou o formato é inválido', () => {
+    expect(customRange('', '2026-07-03')).toBeNull()
+    expect(customRange('2026-07-03', '')).toBeNull()
+    expect(customRange('03/07/2026', '2026-07-03')).toBeNull()
+  })
+
+  it('from > to produz janela vazia (from >= to), não erro', () => {
+    const r = customRange('2026-07-10', '2026-07-03')!
+    expect(r.from.getTime()).toBeGreaterThanOrEqual(r.to.getTime())
   })
 })
