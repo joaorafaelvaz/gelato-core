@@ -20,6 +20,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module'
 import { VouchersModule } from './vouchers/vouchers.module'
 import { CampaignsModule } from './campaigns/campaigns.module'
 import { ProductionModule } from './production/production.module'
+import { IntegrationModule } from './integration/integration.module'
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ProductionModule } from './production/production.module'
     VouchersModule,
     CampaignsModule,
     ProductionModule,
+    IntegrationModule,
   ],
   controllers: [HealthController, MeController],
   providers: [PermissionsGuard],
