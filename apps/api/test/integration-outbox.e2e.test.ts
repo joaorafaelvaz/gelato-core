@@ -79,4 +79,41 @@ describe('outbox integration_events (e2e)', () => {
     expect(dup.duplicate).toBe(true)
     expect(await eventsForOrder(first.orderId)).toHaveLength(1)
   })
+
+  it('falha APÓS o emit → NADA sobrevive (order, sync_event e evento no mesmo rollback)', async () => {
+    // Injeção de falha escolhida: customer_id inexistente → earnLoyalty (que roda
+    // DEPOIS do integrationEvent.create, na mesma transação) cria uma LoyaltyEntry
+    // cujo customerId tem FK para customers → violação de FK determinística.
+    // Alternativa descartada: voucher_code desconhecido NÃO serve — em
+    // recordVoucherRedemption um código não encontrado retorna em silêncio.
+    // earnLoyalty só grava se o programa do tenant estiver ativo com taxas > 0;
+    // como loyalty.e2e.test.ts alterna active on/off no tenant demo em paralelo,
+    // usamos uma Kasse isolada (tenant próprio, programa SEMPRE ativo 1/1) para
+    // que o throw pós-emit seja determinístico.
+    const suffix = crypto.randomUUID().slice(0, 8)
+    const tenant = await prisma.tenant.create({ data: { name: `atomicity-${suffix}` } })
+    await prisma.loyaltyProgram.create({
+      data: { tenantId: tenant.id, pointsPerEuro: 1, stampsPerItem: 1, active: true },
+    })
+    const bs = await prisma.betriebsstaette.create({ data: { tenantId: tenant.id, name: 'bs-atomicity' } })
+    const kasse = await prisma.kasse.create({ data: { betriebsstaetteId: bs.id, name: 'k-atomicity' } })
+
+    const ceid = crypto.randomUUID()
+    const sentinel = `atomicity-${ceid}` // OrderItem.productId não tem FK → sentinela segura
+    const sale = makeSale(ceid)
+    sale.kasse_id = kasse.id
+    sale.payload.order.customer_id = `missing-customer-${suffix}` // FK violada em loyalty_entries
+    sale.payload.items[0].product_id = sentinel
+
+    await expect(ledger.ingest(sale, { userId: 'test' })).rejects.toThrow()
+
+    // Rollback conjunto: nem a order, nem o sync_event, nem o evento da outbox.
+    expect(await prisma.order.findUnique({ where: { clientEventId: ceid } })).toBeNull()
+    expect(await prisma.syncEvent.findUnique({ where: { clientEventId: ceid } })).toBeNull()
+    const all = await prisma.integrationEvent.findMany({ where: { type: 'order.finalized' } })
+    const leaked = all.filter(
+      (e) => (e.payload as { items?: { product_id: string }[] }).items?.[0]?.product_id === sentinel,
+    )
+    expect(leaked).toHaveLength(0)
+  })
 })
