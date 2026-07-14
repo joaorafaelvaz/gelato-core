@@ -98,6 +98,7 @@ export class LedgerService {
             },
           },
         },
+        include: { items: true, payments: true },
       })
 
       await tx.syncEvent.create({
@@ -113,6 +114,50 @@ export class LedgerService {
           payload: { totalGross: p.order.total_gross, mode: p.order.mode },
           ip: actor.ip,
           device: actor.device,
+        },
+      })
+
+      // Outbox da integração (Skyview): denormalizado, mesma transação → atômico.
+      const kasse = await tx.kasse.findUniqueOrThrow({
+        where: { id: event.kasse_id },
+        select: { betriebsstaette: { select: { tenantId: true } } },
+      })
+      const shiftUser = p.order.shift_id
+        ? await tx.shift.findUnique({ where: { id: p.order.shift_id }, select: { userId: true } })
+        : null
+      await tx.integrationEvent.create({
+        data: {
+          tenantId: kasse.betriebsstaette.tenantId,
+          kasseId: event.kasse_id,
+          type: 'order.finalized',
+          payload: {
+            order: {
+              id: order.id,
+              kasse_id: event.kasse_id,
+              ts: order.ts.toISOString(),
+              mode: p.order.mode,
+              status: 'finalized',
+              total_net: p.order.total_net,
+              total_mwst: p.order.total_mwst,
+              total_gross: p.order.total_gross,
+              customer_id: p.order.customer_id ?? null,
+              operator_user_id: shiftUser?.userId ?? null,
+            },
+            items: order.items.map((i) => ({
+              id: i.id,
+              product_id: i.productId,
+              variant_id: i.variantId,
+              qty: i.qty,
+              unit_net: i.unitNet,
+              mwst_rate: Number(i.mwstRate),
+              mwst_code: i.mwstCode,
+            })),
+            payments: order.payments.map((pm) => ({
+              id: pm.id,
+              method: pm.method,
+              amount: pm.amount,
+            })),
+          } as Prisma.InputJsonValue,
         },
       })
 
