@@ -1,5 +1,6 @@
 import { config } from 'dotenv'
 config()
+import { randomUUID } from 'node:crypto'
 import { PrismaClient } from '@prisma/client'
 import { PERMISSIONS, ROLE_PERMISSIONS } from '../src/rbac/permissions'
 import { hashSecret } from '../src/auth/hash'
@@ -110,6 +111,19 @@ export async function runSeed(prisma: PrismaClient = new PrismaClient()): Promis
     },
   })
   await linkRole(prisma, lagerist.id, roleId.get('lagerist'))
+
+  // Service user da integração Skyview (não faz login por senha; token via script)
+  const integrationSvc = await prisma.user.upsert({
+    where: { email: 'skyview@integration.local' },
+    update: {},
+    create: {
+      tenantId: TENANT_ID,
+      name: 'Skyview Integration',
+      email: 'skyview@integration.local',
+      passwordHash: await hashSecret(randomUUID()),
+    },
+  })
+  await linkRole(prisma, integrationSvc.id, roleId.get('integration_reader'))
 
   // Alíquotas (seed conservador — CONFIRMAR COM STEUERBERATER)
   await ensureTaxRate(prisma, 'standard_19', '0.19')

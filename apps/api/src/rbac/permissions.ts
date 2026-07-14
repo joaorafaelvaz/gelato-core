@@ -35,6 +35,8 @@ export const PERMISSIONS = [
   'admin.tse',
   'admin.export.dsfinvk',
   'admin.kassenmeldung',
+  // Integração externa (Skyview) — leitura apenas
+  'integration.read',
 ] as const
 
 export type Permission = (typeof PERMISSIONS)[number]
@@ -61,5 +63,6 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'stock.receive',
     'stock.count',
   ],
+  integration_reader: ['integration.read'],
   admin: [...PERMISSIONS],
 }
