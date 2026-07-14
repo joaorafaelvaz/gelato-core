@@ -784,3 +784,17 @@ model ProductionRecipeIngredient {
   @@unique([productionRecipeId, stockItemId])
   @@map("production_recipe_ingredients")
 }
+
+// ---------- Integração externa (Skyview) — outbox NÃO-fiscal ----------
+
+model IntegrationEvent {
+  seq       BigInt   @id @default(autoincrement())
+  tenantId  String
+  kasseId   String?
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, seq])
+  @@map("integration_events")
+}
