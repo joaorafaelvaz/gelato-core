@@ -13,6 +13,13 @@ function intParam(value: string | undefined, name: string, min: number, max: num
   return n
 }
 
+function dateParam(value: string | undefined, name: string): Date | undefined {
+  if (value === undefined) return undefined
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) throw new BadRequestException(`${name} must be an ISO date-time`)
+  return d
+}
+
 /** API read-only para a integração Skyview (spec §4). */
 @Controller('integration')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -46,5 +53,32 @@ export class IntegrationController {
   @Get('staff')
   staff(@Req() req: { user: JwtUser }) {
     return this.svc.staff(req.user.tenant_id)
+  }
+
+  @Get('orders')
+  orders(
+    @Req() req: { user: JwtUser },
+    @Query('kasse_id') kasseId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.svc.orders(req.user.tenant_id, {
+      kasseId,
+      from: dateParam(from, 'from'),
+      to: dateParam(to, 'to'),
+      limit: intParam(limit, 'limit', 1, 500, 100),
+      offset: intParam(offset, 'offset', 0, 10_000_000, 0),
+    })
+  }
+
+  @Get('shifts')
+  shifts(
+    @Req() req: { user: JwtUser },
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.svc.shifts(req.user.tenant_id, dateParam(from, 'from'), dateParam(to, 'to'))
   }
 }
