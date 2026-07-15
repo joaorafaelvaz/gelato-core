@@ -1,0 +1,27 @@
+# Não bakear no build de imagem: dependências reinstaladas, artefatos recompilados,
+# e — crítico — arquivos .env (senão o DATABASE_URL de dev sobrescreve o do container).
+node_modules
+**/node_modules
+.git
+.gitignore
+.gitattributes
+dist
+**/dist
+out
+**/out
+.turbo
+**/.turbo
+release
+**/release
+coverage
+**/coverage
+.env
+**/.env
+!.env.example
+!**/.env.example
+!**/.env.prod.example
+*.log
+.DS_Store
+.claude
+.vscode
+.idea
