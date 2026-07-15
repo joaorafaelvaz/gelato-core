@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { applyRate } from '@gelato/domain'
 import { PrismaService } from '../prisma/prisma.service'
 
 /**
@@ -29,7 +30,7 @@ export class IntegrationService {
     const kassen = await this.prisma.kasse.findMany({
       where: { betriebsstaette: { tenantId } },
       select: { id: true, name: true, betriebsstaette: { select: { name: true } } },
-      orderBy: { name: 'asc' },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
     })
     // v1: todas as lojas gelato-core são alemãs — constantes (spec §4.3).
     return kassen.map((k) => ({
@@ -47,15 +48,17 @@ export class IntegrationService {
       this.prisma.product.findMany({
         where: { tenantId },
         include: { category: { select: { name: true } } },
-        orderBy: { name: 'asc' },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
       }),
-      this.prisma.taxRate.findMany({ where: { tenantId } }),
+      // validFrom desc + find(): se houver mais de uma alíquota válida para o
+      // mesmo código, "vigente" é deterministicamente a de validFrom mais recente.
+      this.prisma.taxRate.findMany({ where: { tenantId }, orderBy: { validFrom: 'desc' } }),
     ])
     const pickRate = (code: string) =>
       rates.find((r) => r.code === code && r.validFrom <= now && (!r.validTo || r.validTo > now))
     return prods.map((p) => {
       const rate = pickRate(p.mwstCodeImHaus)
-      const gross = rate ? p.netCents + Math.round(p.netCents * Number(rate.rate)) : p.netCents
+      const gross = rate ? p.netCents + applyRate(p.netCents, Number(rate.rate)) : p.netCents
       return {
         id: p.id,
         name: p.name,
@@ -74,7 +77,7 @@ export class IntegrationService {
     const users = await this.prisma.user.findMany({
       where: { tenantId },
       select: { id: true, name: true, active: true, createdAt: true },
-      orderBy: { name: 'asc' },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
     })
     return users.map((u) => ({
       id: u.id,
