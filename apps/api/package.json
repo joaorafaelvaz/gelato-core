@@ -12,6 +12,7 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed-run.ts",
+    "issue:integration-token": "tsx scripts/issue-integration-token.mts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
