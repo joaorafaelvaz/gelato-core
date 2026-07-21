@@ -22,24 +22,41 @@
       "ausser_haus": "Takeaway"
     },
     "finalize": "Finalize",
+    "cart": {
+      "title": "Current Order",
+      "empty": "No items yet",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "total": "Total",
+      "cancel": "Cancel",
+      "pay": "Payment",
+      "addNote": "+ Add note",
+      "notePlaceholder": "Note..."
+    },
     "receipt": {
       "title": "Receipt",
       "net": "Net",
       "vat": "VAT",
-      "total": "Total"
+      "total": "Total",
+      "none": "No receipt yet"
     },
+    "search": { "placeholder": "Product, code or description...", "results": "Search results" },
+    "customer": { "label": "Customer", "comingSoon": "Coming soon" },
+    "menu": { "more": "More options", "language": "Language", "newOrder": "New Order", "operator": "Operator", "editProducts": "Edit Products", "tagline": "Gelateria", "tables": "Tables" },
+    "summary": { "items": "items" },
+    "salon": { "title": "Floor" },
     "login": { "invalidPin": "Invalid PIN" },
     "shift": { "closed": "Shift closed", "float": "Opening float (€)", "open": "Open shift", "close": "Close shift", "countedPrompt": "Kassensturz: counted (€)", "closedReport": "Shift closed — Differenz {{diff}}" },
     "cash": { "title": "Kasse", "sangria": "Cash out", "suprimento": "Cash in", "drawer": "Drawer" },
     "ausfall": { "banner": "⚠ TSE unavailable — sales in Ausfall mode (unsigned). Documented and synced.", "noQr": "TSE-Ausfall — no QR" },
-    "tables": { "title": "Floor (Tische)", "hint": "Click opens the tab · drag repositions the table", "tab": "Tab", "remaining": "(remaining {{value}})", "variant": "Variant", "line": "Line: {{value}} (net)", "payAll": "Pay all", "splitIn": "Split in", "payPart": "Pay 1 part", "targetTable": "— target table —", "transfer": "Transfer", "settled": "Table settled", "paidPartial": "Paid {{paid}} — remaining {{remaining}}" }
+    "tables": { "title": "Floor (Tische)", "hint": "Click opens the tab · drag repositions the table", "tab": "Tab", "remaining": "(remaining {{value}})", "variant": "Variant", "line": "Line: {{value}} (net)", "payAll": "Pay all", "splitIn": "Split in", "payPart": "Pay 1 part", "targetTable": "— target table —", "transfer": "Transfer", "settled": "Table settled", "paidPartial": "Paid {{paid}} — remaining {{remaining}}", "openFailed": "Couldn't open — another operator may already have this table. Try again." }
   },
   "backoffice": {
     "sales": { "loadMore": "Load more", "date": "Date" },
     "nav": { "today": "Today", "operations": "Operations", "catalog": "Catalog", "customers": "Customers", "fiscal": "Fiscal" },
     "page": { "dashboard": "Overview", "stock": "Stock", "production": "Production", "checklists": "Checklists (HACCP)", "products": "Products", "recipes": "Recipes", "crm": "Customers (CRM)", "loyalty": "Loyalty", "vouchers": "Vouchers", "campaigns": "Campaigns", "sales": "Sales", "haccp": "HACCP reports", "exports": "Exports (Finanzamt)" },
-    "common": { "loading": "Loading…", "retry": "Try again", "loadError": "Failed to load", "empty": "Nothing here yet", "saved": "Saved", "actionFailed": "Action failed", "logout": "Log out", "loginFailed": "Login failed", "create": "Create" },
-    "products": { "name": "Name", "priceNet": "Net price (€)", "mwstImHaus": "MwSt dine-in", "mwstAusserHaus": "MwSt takeaway" },
+    "common": { "loading": "Loading…", "retry": "Try again", "loadError": "Failed to load", "empty": "Nothing here yet", "saved": "Saved", "actionFailed": "Action failed", "logout": "Log out", "loginFailed": "Login failed", "create": "Create", "tagline": "Gelateria", "operator": "Administrator" },
+    "products": { "name": "Name", "priceNet": "Net price (€)", "mwstImHaus": "MwSt dine-in", "mwstAusserHaus": "MwSt takeaway", "noCategory": "Uncategorized" },
     "dashboard": { "sales": "Sales", "stockAlerts": "Stock alerts", "haccpOverdue": "HACCP overdue", "lastSales": "Last sales", "period": { "today": "Today", "yesterday": "Yesterday", "month": "Month", "year": "Year", "custom": "Custom" } },
     "stock": { "item": "Item", "unit": "Unit", "current": "Current", "min": "Min.", "receive": "Receive", "count": "Count", "qty": "Quantity", "selectItem": "— select item —", "alerts": "{{count}} alert(s):", "negative": "negative", "newItem": "New item" },
     "recipes": { "yields": "makes {{count}}", "inactive": "inactive", "product": "Product", "variant": "Variant", "baseOption": "— base (no variant) —", "addIngredient": "+ item", "activate": "Activate", "deactivate": "Deactivate" },

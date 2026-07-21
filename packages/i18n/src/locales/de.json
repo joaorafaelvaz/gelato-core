@@ -22,24 +22,41 @@
       "ausser_haus": "Außer Haus"
     },
     "finalize": "Abschließen",
+    "cart": {
+      "title": "Aktuelle Bestellung",
+      "empty": "Noch keine Artikel",
+      "subtotal": "Zwischensumme",
+      "discount": "Rabatt",
+      "total": "Summe",
+      "cancel": "Abbrechen",
+      "pay": "Bezahlen",
+      "addNote": "+ Notiz hinzufügen",
+      "notePlaceholder": "Notiz..."
+    },
     "receipt": {
       "title": "Beleg",
       "net": "Netto",
       "vat": "MwSt",
-      "total": "Summe"
+      "total": "Summe",
+      "none": "Noch kein Beleg"
     },
+    "search": { "placeholder": "Produkt, Code oder Beschreibung...", "results": "Suchergebnisse" },
+    "customer": { "label": "Kunde", "comingSoon": "Demnächst" },
+    "menu": { "more": "Mehr Optionen", "language": "Sprache", "newOrder": "Neue Bestellung", "operator": "Bediener", "editProducts": "Produkte bearbeiten", "tagline": "Gelateria", "tables": "Tische" },
+    "summary": { "items": "Artikel" },
+    "salon": { "title": "Salon" },
     "login": { "invalidPin": "PIN ungültig" },
     "shift": { "closed": "Schicht geschlossen", "float": "Wechselgeld (€)", "open": "Schicht öffnen", "close": "Schicht schließen", "countedPrompt": "Kassensturz: gezählt (€)", "closedReport": "Schicht geschlossen — Differenz {{diff}}" },
     "cash": { "title": "Kasse", "sangria": "Entnahme", "suprimento": "Einlage", "drawer": "Schublade" },
     "ausfall": { "banner": "⚠ TSE nicht verfügbar — Verkäufe im Ausfall-Modus (ohne Signatur). Dokumentiert und synchronisiert.", "noQr": "TSE-Ausfall — kein QR" },
-    "tables": { "title": "Saal (Tische)", "hint": "Klick öffnet die Rechnung · Ziehen verschiebt den Tisch", "tab": "Rechnung", "remaining": "(Rest {{value}})", "variant": "Variante", "line": "Position: {{value}} (netto)", "payAll": "Alles zahlen", "splitIn": "Split in", "payPart": "1 Teil zahlen", "targetTable": "— Ziel-Tisch —", "transfer": "Übertragen", "settled": "Tisch beglichen", "paidPartial": "Bezahlt {{paid}} — Rest {{remaining}}" }
+    "tables": { "title": "Saal (Tische)", "hint": "Klick öffnet die Rechnung · Ziehen verschiebt den Tisch", "tab": "Rechnung", "remaining": "(Rest {{value}})", "variant": "Variante", "line": "Position: {{value}} (netto)", "payAll": "Alles zahlen", "splitIn": "Split in", "payPart": "1 Teil zahlen", "targetTable": "— Ziel-Tisch —", "transfer": "Übertragen", "settled": "Tisch beglichen", "paidPartial": "Bezahlt {{paid}} — Rest {{remaining}}", "openFailed": "Öffnen fehlgeschlagen — ein anderer Bediener hat den Tisch evtl. schon. Nochmal versuchen." }
   },
   "backoffice": {
     "sales": { "loadMore": "Mehr laden", "date": "Datum" },
     "nav": { "today": "Heute", "operations": "Betrieb", "catalog": "Stammdaten", "customers": "Kunden", "fiscal": "Fiskal" },
     "page": { "dashboard": "Übersicht", "stock": "Lager", "production": "Produktion", "checklists": "Checklisten (HACCP)", "products": "Produkte", "recipes": "Rezepte", "crm": "Kunden (CRM)", "loyalty": "Treueprogramm", "vouchers": "Gutscheine", "campaigns": "Kampagnen", "sales": "Verkäufe", "haccp": "HACCP-Berichte", "exports": "Exporte (Finanzamt)" },
-    "common": { "loading": "Lädt…", "retry": "Erneut versuchen", "loadError": "Fehler beim Laden", "empty": "Noch keine Einträge", "saved": "Gespeichert", "actionFailed": "Aktion fehlgeschlagen", "logout": "Abmelden", "loginFailed": "Anmeldung fehlgeschlagen", "create": "Anlegen" },
-    "products": { "name": "Name", "priceNet": "Preis netto (€)", "mwstImHaus": "MwSt im Haus", "mwstAusserHaus": "MwSt außer Haus" },
+    "common": { "loading": "Lädt…", "retry": "Erneut versuchen", "loadError": "Fehler beim Laden", "empty": "Noch keine Einträge", "saved": "Gespeichert", "actionFailed": "Aktion fehlgeschlagen", "logout": "Abmelden", "loginFailed": "Anmeldung fehlgeschlagen", "create": "Anlegen", "tagline": "Gelateria", "operator": "Administrator" },
+    "products": { "name": "Name", "priceNet": "Preis netto (€)", "mwstImHaus": "MwSt im Haus", "mwstAusserHaus": "MwSt außer Haus", "noCategory": "Ohne Kategorie" },
     "dashboard": { "sales": "Verkäufe", "stockAlerts": "Lagerwarnungen", "haccpOverdue": "HACCP überfällig", "lastSales": "Letzte Verkäufe", "period": { "today": "Heute", "yesterday": "Gestern", "month": "Monat", "year": "Jahr", "custom": "Individuell" } },
     "stock": { "item": "Zutat", "unit": "Einheit", "current": "Bestand", "min": "Min.", "receive": "Wareneingang", "count": "Inventur", "qty": "Menge", "selectItem": "— Zutat wählen —", "alerts": "{{count}} Warnung(en):", "negative": "negativ", "newItem": "Neue Zutat" },
     "recipes": { "yields": "ergibt {{count}}", "inactive": "inaktiv", "product": "Produkt", "variant": "Variante", "baseOption": "— Basis (ohne Variante) —", "addIngredient": "+ Zutat", "activate": "Aktivieren", "deactivate": "Deaktivieren" },

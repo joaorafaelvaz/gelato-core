@@ -163,6 +163,7 @@ model Product {
   tenantId           String
   categoryId         String?
   name               String
+  imageUrl           String? // foto do produto, exibida no backoffice e no caixa
   type               String   @default("vendavel") // vendavel | insumo | semi_acabado
   // netCents: preço NET em cents (a decomposição de MwSt é feita pelo motor)
   netCents           Int
@@ -368,6 +369,7 @@ model Tischsession {
   kasseId  String
   status   String    @default("open") // open | paid | cancelled
   openedBy String?
+  pax      Int?      // número de pessoas na mesa (opcional, informado ao abrir)
   openedAt DateTime  @default(now())
   closedAt DateTime?
   orderId  String?   @unique

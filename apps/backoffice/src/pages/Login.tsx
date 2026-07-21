@@ -21,6 +21,7 @@ export function Login({ onLogin }: { onLogin: (token: string) => void }) {
 
   return (
     <form onSubmit={submit} className="card login">
+      <img src="/skyview-logo-transparent.png" alt="Skyview" style={{ height: 56, width: 'auto', margin: '0 auto 8px', display: 'block' }} />
       <h1>{t('common.appName')}</h1>
       <label>
         {t('auth.login.email')}

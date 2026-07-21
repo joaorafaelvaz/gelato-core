@@ -16,6 +16,7 @@ export interface ApiProduct {
   mwstCodeImHaus: string
   mwstCodeAusserHaus: string
   categoryId?: string | null
+  imageUrl?: string | null
   variants?: ApiVariant[]
   modifiers?: ApiVariant[]
 }
@@ -28,6 +29,16 @@ export interface ApiTaxRate {
 
 export function apiBase(): string {
   return BASE
+}
+
+const BACKOFFICE_URL = (import.meta.env.VITE_BACKOFFICE_URL as string | undefined) ?? 'http://127.0.0.1:5174'
+export function backofficeUrl(): string {
+  return BACKOFFICE_URL
+}
+
+/** Fotos de produto vêm como caminho relativo (/uploads/products/...) servido pela API. */
+export function imageUrlFor(path?: string | null): string | null {
+  return path ? `${BASE}${path}` : null
 }
 
 export async function loginPin(kasseId: string, pin: string): Promise<LoginResult> {
@@ -50,6 +61,18 @@ export async function getTaxRates(token: string): Promise<ApiTaxRate[]> {
   const res = await fetch(`${BASE}/tax-rates`, { headers: { authorization: `Bearer ${token}` } })
   if (!res.ok) return []
   return res.json() as Promise<ApiTaxRate[]>
+}
+
+export interface ApiCategory {
+  id: string
+  name: string
+  sortOrder: number
+}
+
+export async function getCategories(token: string): Promise<ApiCategory[]> {
+  const res = await fetch(`${BASE}/product-categories`, { headers: { authorization: `Bearer ${token}` } })
+  if (!res.ok) return []
+  return res.json() as Promise<ApiCategory[]>
 }
 
 async function authedPost<T>(path: string, token: string, body: unknown): Promise<T> {

@@ -30,12 +30,12 @@ export class TablesService {
         const items: TabItemInput[] = s.bestellungen.flatMap((b) =>
           b.items.map((i) => ({ productId: i.productId, qty: i.qty, unitNet: i.unitNet, mwstRate: Number(i.mwstRate), mwstCode: i.mwstCode })),
         )
-        return [s.tischId, { sessionId: s.id, total: aggregateTab(items).totalGross }] as const
+        return [s.tischId, { sessionId: s.id, total: aggregateTab(items).totalGross, pax: s.pax }] as const
       }),
     )
     return tische.map((t) => {
       const o = byTisch.get(t.id)
-      return { id: t.id, name: t.name, posX: t.posX, posY: t.posY, openSessionId: o?.sessionId ?? null, openTotalGross: o?.total ?? null }
+      return { id: t.id, name: t.name, posX: t.posX, posY: t.posY, openSessionId: o?.sessionId ?? null, openTotalGross: o?.total ?? null, pax: o?.pax ?? null }
     })
   }
 
@@ -46,11 +46,31 @@ export class TablesService {
     return this.prisma.tisch.update({ where: { id }, data: { posX, posY } })
   }
 
-  /** Abre uma conta na mesa (≤1 sessão aberta por mesa). */
-  async openSession(tischId: string, kasseId: string, userId?: string) {
+  /** Abre uma conta na mesa (≤1 sessão aberta por mesa). `pax` = nº de pessoas (opcional). */
+  async openSession(tischId: string, kasseId: string, userId?: string, pax?: number) {
     const existing = await this.prisma.tischsession.findFirst({ where: { tischId, status: 'open' } })
     if (existing) throw new ConflictException({ message: 'table already open', sessionId: existing.id })
-    return this.prisma.tischsession.create({ data: { tischId, kasseId, status: 'open', openedBy: userId } })
+    const session = await this.prisma.tischsession.create({ data: { tischId, kasseId, status: 'open', openedBy: userId, pax } })
+    await this.emitEvent(kasseId, 'table.opened', { tisch_id: tischId, session_id: session.id, opened_by: userId ?? null, pax: pax ?? null })
+    return session
+  }
+
+  /** Narrativa operacional pública (via controller) — mesma gravação de `emitEvent`,
+   * mas para fases sem gatilho de dados próprio (chamado pelo simulador). */
+  async narrate(kasseId: string, type: string, payload: Record<string, unknown>): Promise<void> {
+    await this.emitEvent(kasseId, `sim.${type}`, payload)
+  }
+
+  /** Grava um evento no outbox da integração (Skyview) fora da transação fiscal —
+   * narrativo/operacional, não afeta o ledger. Falha aqui nunca deve derrubar a operação. */
+  private async emitEvent(kasseId: string, type: string, payload: Record<string, unknown>): Promise<void> {
+    try {
+      const kasse = await this.prisma.kasse.findUnique({ where: { id: kasseId }, select: { betriebsstaette: { select: { tenantId: true } } } })
+      if (!kasse) return
+      await this.prisma.integrationEvent.create({ data: { tenantId: kasse.betriebsstaette.tenantId, kasseId, type, payload } })
+    } catch {
+      // best-effort — evento de narrativa não pode quebrar o fluxo real da venda
+    }
   }
 
   /** Conta corrente da sessão (derivada das Bestellungen) + remanescente (− já pago). */
@@ -151,6 +171,15 @@ export class TablesService {
         data: { userId, action: 'pos.bestellung.create', entity: 'bestellung', entityId: b.id, payload: { sessionId, seqNr } },
       })
       return { duplicate: false, bestellungId: b.id }
+    }).then(async (result) => {
+      if (!result.duplicate) {
+        await this.emitEvent(event.kasse_id, 'order.item_added', {
+          session_id: sessionId,
+          bestellung_id: result.bestellungId,
+          items: event.items.map((i) => ({ product_id: i.product_id, qty: i.qty })),
+        })
+      }
+      return result
     })
   }
 

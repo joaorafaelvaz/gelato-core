@@ -13,6 +13,7 @@
     "migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed-run.ts",
     "issue:integration-token": "tsx scripts/issue-integration-token.mts",
+    "simulate": "tsx scripts/simulate-restaurant.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -42,6 +43,7 @@
     "@nestjs/testing": "^11.0.1",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
+    "@types/multer": "^2.2.0",
     "@types/pg": "^8.11.10",
     "@types/supertest": "^6.0.2",
     "dotenv": "^16.4.7",

@@ -22,24 +22,41 @@
       "ausser_haus": "Para viagem"
     },
     "finalize": "Finalizar",
+    "cart": {
+      "title": "Pedido Atual",
+      "empty": "Nenhum item adicionado",
+      "subtotal": "Subtotal",
+      "discount": "Desconto",
+      "total": "Total",
+      "cancel": "Cancelar",
+      "pay": "Pagamento",
+      "addNote": "+ Adicionar observação",
+      "notePlaceholder": "Observação..."
+    },
     "receipt": {
       "title": "Recibo",
       "net": "Líquido",
       "vat": "IVA",
-      "total": "Total"
+      "total": "Total",
+      "none": "Nenhum recibo ainda"
     },
+    "search": { "placeholder": "Produto, código ou descrição...", "results": "Resultados da busca" },
+    "customer": { "label": "Cliente", "comingSoon": "Em breve" },
+    "menu": { "more": "Mais opções", "language": "Idioma", "newOrder": "Novo Pedido", "operator": "Operador", "editProducts": "Editar Produtos", "tagline": "Gelateria", "tables": "Mesas" },
+    "summary": { "items": "itens" },
+    "salon": { "title": "Salão" },
     "login": { "invalidPin": "PIN inválido" },
     "shift": { "closed": "Turno fechado", "float": "Float de abertura (€)", "open": "Abrir turno", "close": "Fechar turno", "countedPrompt": "Kassensturz: contado (€)", "closedReport": "Turno fechado — Differenz {{diff}}" },
     "cash": { "title": "Kasse", "sangria": "Sangria", "suprimento": "Suprimento", "drawer": "Gaveta" },
     "ausfall": { "banner": "⚠ TSE indisponível — vendas em modo Ausfall (sem assinatura). Documentado e sincronizado.", "noQr": "TSE-Ausfall — sem QR" },
-    "tables": { "title": "Salão (Tische)", "hint": "Clique abre a conta · arraste reposiciona a mesa", "tab": "Conta", "remaining": "(resta {{value}})", "variant": "Variante", "line": "Linha: {{value}} (net)", "payAll": "Pagar tudo", "splitIn": "Split em", "payPart": "Pagar 1 parte", "targetTable": "— mesa destino —", "transfer": "Transferir", "settled": "Mesa quitada", "paidPartial": "Pago {{paid}} — resta {{remaining}}" }
+    "tables": { "title": "Salão (Tische)", "hint": "Clique abre a conta · arraste reposiciona a mesa", "tab": "Conta", "remaining": "(resta {{value}})", "variant": "Variante", "line": "Linha: {{value}} (net)", "payAll": "Pagar tudo", "splitIn": "Split em", "payPart": "Pagar 1 parte", "targetTable": "— mesa destino —", "transfer": "Transferir", "settled": "Mesa quitada", "paidPartial": "Pago {{paid}} — resta {{remaining}}", "openFailed": "Não deu pra abrir — outro operador pode ter pego essa mesa. Tente de novo." }
   },
   "backoffice": {
     "sales": { "loadMore": "Carregar mais", "date": "Data" },
     "nav": { "today": "Hoje", "operations": "Operação", "catalog": "Cadastros", "customers": "Clientes", "fiscal": "Fiscal" },
     "page": { "dashboard": "Visão geral", "stock": "Estoque", "production": "Produção", "checklists": "Checklists (HACCP)", "products": "Produtos", "recipes": "Receitas", "crm": "Clientes (CRM)", "loyalty": "Fidelidade", "vouchers": "Vouchers", "campaigns": "Campanhas", "sales": "Vendas", "haccp": "Relatórios HACCP", "exports": "Exports (Finanzamt)" },
-    "common": { "loading": "Carregando…", "retry": "Tentar de novo", "loadError": "Falha ao carregar", "empty": "Nada por aqui ainda", "saved": "Salvo", "actionFailed": "Ação falhou", "logout": "Sair", "loginFailed": "Login falhou", "create": "Criar" },
-    "products": { "name": "Nome", "priceNet": "Preço líquido (€)", "mwstImHaus": "MwSt no local", "mwstAusserHaus": "MwSt para viagem" },
+    "common": { "loading": "Carregando…", "retry": "Tentar de novo", "loadError": "Falha ao carregar", "empty": "Nada por aqui ainda", "saved": "Salvo", "actionFailed": "Ação falhou", "logout": "Sair", "loginFailed": "Login falhou", "create": "Criar", "tagline": "Gelateria", "operator": "Administrador" },
+    "products": { "name": "Nome", "priceNet": "Preço líquido (€)", "mwstImHaus": "MwSt no local", "mwstAusserHaus": "MwSt para viagem", "noCategory": "Sem categoria" },
     "dashboard": { "sales": "Vendas", "stockAlerts": "Alertas de estoque", "haccpOverdue": "HACCP atrasado", "lastSales": "Últimas vendas", "period": { "today": "Hoje", "yesterday": "Ontem", "month": "Mês", "year": "Ano", "custom": "Personalizado" } },
     "stock": { "item": "Insumo", "unit": "Unidade", "current": "Atual", "min": "Mín.", "receive": "Entrada", "count": "Contagem", "qty": "Quantidade", "selectItem": "— insumo —", "alerts": "{{count}} em alerta:", "negative": "negativo", "newItem": "Novo insumo" },
     "recipes": { "yields": "dá p/ {{count}}", "inactive": "inativa", "product": "Produto", "variant": "Variante", "baseOption": "— base (sem variante) —", "addIngredient": "+ insumo", "activate": "Ativar", "deactivate": "Desativar" },

@@ -172,6 +172,29 @@ export async function apiPost<T>(path: string, token: string, body: unknown): Pr
   return res.json() as Promise<T>
 }
 
+export async function apiPatch<T>(path: string, token: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  })
+  check(res, path)
+  return res.json() as Promise<T>
+}
+
+/** Upload de arquivo (multipart) — ex.: foto de produto. */
+export async function apiUpload(path: string, token: string, file: File): Promise<{ url: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    body: formData,
+  })
+  check(res, path)
+  return res.json() as Promise<{ url: string }>
+}
+
 export interface OrderRow {
   id: string
   ts: string
@@ -183,7 +206,15 @@ export interface ProductRow {
   id: string
   name: string
   netCents: number
+  imageUrl?: string | null
+  categoryId?: string | null
   variants?: { id: string; name: string; netCents: number }[]
+}
+
+export interface CategoryRow {
+  id: string
+  name: string
+  sortOrder: number
 }
 
 export interface TaxRateRow {

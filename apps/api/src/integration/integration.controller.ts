@@ -73,6 +73,16 @@ export class IntegrationController {
     })
   }
 
+  @Get('tables')
+  tables(@Req() req: { user: JwtUser }) {
+    return this.svc.tables(req.user.tenant_id)
+  }
+
+  @Get('stock')
+  stock(@Req() req: { user: JwtUser }) {
+    return this.svc.stock(req.user.tenant_id)
+  }
+
   @Get('shifts')
   shifts(
     @Req() req: { user: JwtUser },

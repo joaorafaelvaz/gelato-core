@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { applyRate } from '@gelato/domain'
+import { aggregateStock } from '@gelato/compliance'
 import { PrismaService } from '../prisma/prisma.service'
 
 /**
@@ -106,6 +107,7 @@ export class IntegrationService {
         items: { orderBy: { id: 'asc' } },
         payments: { orderBy: { id: 'asc' } },
         shift: { select: { userId: true } },
+        tischSession: { select: { openedBy: true, tischId: true, pax: true } },
       },
     })
     return rows.map((o) => ({
@@ -118,7 +120,10 @@ export class IntegrationService {
       total_mwst: o.totalMwst,
       total_gross: o.totalGross,
       customer_id: o.customerId,
-      operator_user_id: o.shift?.userId ?? null,
+      table_id: o.tischSession?.tischId ?? o.tableId ?? null,
+      pax: o.tischSession?.pax ?? null,
+      // Mesa: quem abriu a mesa é o garçom responsável. Balcão: operador do turno.
+      operator_user_id: o.tischSession?.openedBy ?? o.shift?.userId ?? null,
       items: o.items.map((i) => ({
         id: i.id,
         product_id: i.productId,
@@ -129,6 +134,52 @@ export class IntegrationService {
         mwst_code: i.mwstCode,
       })),
       payments: o.payments.map((p) => ({ id: p.id, method: p.method, amount: p.amount })),
+    }))
+  }
+
+  async tables(tenantId: string) {
+    const rows = await this.prisma.tisch.findMany({
+      where: { betriebsstaette: { tenantId } },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      include: {
+        sessions: {
+          where: { status: 'open' },
+          orderBy: { openedAt: 'desc' },
+          take: 1,
+          select: { id: true, kasseId: true, openedAt: true, openedBy: true, pax: true },
+        },
+      },
+    })
+    return rows.map((t) => {
+      const open = t.sessions[0]
+      return {
+        id: t.id,
+        name: t.name,
+        seats: t.seats,
+        betriebsstaette_id: t.betriebsstaetteId,
+        active: t.active,
+        status: open ? 'occupied' : 'free',
+        open_session_id: open?.id ?? null,
+        kasse_id: open?.kasseId ?? null,
+        waiter_user_id: open?.openedBy ?? null,
+        pax: open?.pax ?? null,
+        opened_at: open?.openedAt.toISOString() ?? null,
+      }
+    })
+  }
+
+  async stock(tenantId: string) {
+    const [items, movements] = await Promise.all([
+      this.prisma.stockItem.findMany({ where: { tenantId, active: true }, orderBy: { name: 'asc' } }),
+      this.prisma.stockMovement.findMany({ where: { tenantId }, select: { stockItemId: true, qtyDelta: true } }),
+    ])
+    const qtyById = new Map(aggregateStock(movements).map((l) => [l.stockItemId, l.qty]))
+    return items.map((i) => ({
+      id: i.id,
+      name: i.name,
+      unit: i.unit,
+      min_stock: i.minStock,
+      qty: qtyById.get(i.id) ?? 0,
     }))
   }
 

@@ -22,9 +22,9 @@ export class TablesController {
   @Post('tables/:tischId/open')
   @HttpCode(200)
   @RequirePermission('pos.table.open')
-  async open(@Req() req: { user: JwtUser }, @Param('tischId') tischId: string, @Body() body: { kasse_id?: string }) {
+  async open(@Req() req: { user: JwtUser }, @Param('tischId') tischId: string, @Body() body: { kasse_id?: string; pax?: number }) {
     if (!body?.kasse_id) throw new BadRequestException('kasse_id required')
-    return this.tables.openSession(tischId, body.kasse_id, req.user.sub)
+    return this.tables.openSession(tischId, body.kasse_id, req.user.sub, body.pax)
   }
 
   @Get('sessions/:id')
@@ -65,9 +65,26 @@ export class TablesController {
     const dto = parseOrThrow(PositionDto, body)
     return this.tables.updatePosition(id, dto.pos_x, dto.pos_y, req.user.tenant_id)
   }
+
+  /** Narrativa operacional (sem efeito fiscal) — fases sem gatilho de dados próprio
+   * (ex.: "em preparo", "servido"), só para alimentar o feed em tempo real. */
+  @Post('sim/narrate')
+  @HttpCode(200)
+  @RequirePermission('pos.sale.create')
+  async narrate(@Body() body: unknown) {
+    const dto = parseOrThrow(NarrateDto, body)
+    await this.tables.narrate(dto.kasse_id, dto.type, dto.payload ?? {})
+    return { ok: true }
+  }
 }
 
 const PositionDto = z.object({ pos_x: z.number().int(), pos_y: z.number().int() })
+
+const NarrateDto = z.object({
+  kasse_id: z.string().min(1),
+  type: z.string().min(1),
+  payload: z.record(z.unknown()).optional(),
+})
 
 const PayDto = z.object({
   client_event_id: z.string().uuid(),
