@@ -41,6 +41,8 @@ import {
 
 type Mode = 'im_haus' | 'ausser_haus'
 
+const LANG_LABEL: Record<string, string> = { de: 'DE', en: 'EN', pt: 'PT' }
+
 const KASSE = 'demo-kasse'
 const store = new IdbStore()
 const tse = new FakeTseProvider({ serialNumber: 'WEB-SANDBOX' })
@@ -258,6 +260,18 @@ export function App() {
             <img src="/skyview-logo.png" alt="Skyview" />
             <span className="pos-sidebar-tagline">{t('pos.menu.tagline')}</span>
           </div>
+          <div className="pos-sidebar-lang">
+            {SUPPORTED_LOCALES.map((l) => (
+              <button
+                key={l}
+                type="button"
+                className={i18n.language === l ? 'lang-btn active' : 'lang-btn'}
+                onClick={() => void i18n.changeLanguage(l)}
+              >
+                {LANG_LABEL[l]}
+              </button>
+            ))}
+          </div>
           <nav className="pos-categories">
             {categories.map((c) => (
               <button
@@ -326,12 +340,6 @@ export function App() {
                 <button className="btn-icon" onClick={() => setMenuOpen((v) => !v)} title={t('pos.menu.more')}><IconMoreVertical className="icon" /></button>
                 {menuOpen && (
                   <div className="topbar-menu-panel">
-                    <label className="topbar-menu-lang">
-                      {t('pos.menu.language')}
-                      <select value={i18n.language} onChange={(e) => void i18n.changeLanguage(e.target.value)}>
-                        {SUPPORTED_LOCALES.map((l) => <option key={l} value={l}>{l.toUpperCase()}</option>)}
-                      </select>
-                    </label>
                     <button onClick={() => void cashMovement(token, shiftId, 'sangria', askCents(`${t('pos.cash.sangria')} (€)`))}>{t('pos.cash.sangria')}</button>
                     <button onClick={() => void cashMovement(token, shiftId, 'suprimento', askCents(`${t('pos.cash.suprimento')} (€)`))}>{t('pos.cash.suprimento')}</button>
                     <button onClick={() => void drawerOpen(token)}>{t('pos.cash.drawer')}</button>

@@ -29,8 +29,11 @@ h3 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
 .pos-sidebar-logo { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 0 8px 20px; }
 .pos-sidebar-logo img { height: 40px; width: auto; }
 .pos-sidebar-tagline { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: var(--accent-bright); text-transform: uppercase; }
+.pos-sidebar-lang { display: flex; gap: 4px; padding: 0 8px 16px; }
+.lang-btn { flex: 1; min-height: 30px; padding: 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; border-radius: 8px; border: 1px solid var(--header-border); background: transparent; color: rgba(255,255,255,0.6); }
+.lang-btn.active { background: var(--accent-bright); border-color: var(--accent-bright); color: var(--header); }
 .pos-main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-@media (max-width: 900px) { .pos-app { flex-direction: column; } .pos-sidebar { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; } .pos-sidebar-logo { padding: 0 12px 0 0; } .pos-categories { flex-direction: row; } .pos-categories-user { margin-top: 0; margin-left: auto; border-top: none; padding-top: 0; } }
+@media (max-width: 900px) { .pos-app { flex-direction: column; } .pos-sidebar { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; } .pos-sidebar-logo { padding: 0 12px 0 0; } .pos-sidebar-lang { padding: 0 12px 0 0; } .pos-categories { flex-direction: row; } .pos-categories-user { margin-top: 0; margin-left: auto; border-top: none; padding-top: 0; } }
 
 .topbar { display: flex; align-items: center; gap: 16px; background: var(--surface); color: var(--text); padding: 12px 20px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
 .brand { font-weight: 600; }
@@ -124,6 +127,12 @@ h3 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
 .cart-total-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--text-muted); }
 .cart-total-row-final { font-size: 17px; color: var(--text); font-weight: 600; padding-top: 6px; border-top: 1px solid var(--border); }
 .cart-discount-input { width: 90px; text-align: right; min-height: 32px; padding: 4px 8px; font-size: 13px; }
+
+/* Caixa de pagamento do Salão: linhas 40% maiores — telas de toque, dedo em vez de mouse. */
+.salon-cart .cart-line-main { gap: 14px; font-size: 21px; }
+.salon-cart .cart-line-thumb { width: 62px; height: 62px; border-radius: 14px; }
+.salon-cart .cart-line-thumb .icon { width: 31px; height: 31px; }
+.salon-cart .cart-line-note { font-size: 15px; }
 .cart-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .btn-secondary { background: transparent; border-color: var(--red-text); color: var(--red-text); font-weight: 600; }
 
