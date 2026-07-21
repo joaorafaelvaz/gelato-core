@@ -49,7 +49,7 @@
     "shift": { "closed": "Turno fechado", "float": "Float de abertura (€)", "open": "Abrir turno", "close": "Fechar turno", "countedPrompt": "Kassensturz: contado (€)", "closedReport": "Turno fechado — Differenz {{diff}}" },
     "cash": { "title": "Kasse", "sangria": "Sangria", "suprimento": "Suprimento", "drawer": "Gaveta" },
     "ausfall": { "banner": "⚠ TSE indisponível — vendas em modo Ausfall (sem assinatura). Documentado e sincronizado.", "noQr": "TSE-Ausfall — sem QR" },
-    "tables": { "title": "Salão (Tische)", "hint": "Clique abre a conta · arraste reposiciona a mesa", "tab": "Conta", "remaining": "(resta {{value}})", "variant": "Variante", "line": "Linha: {{value}} (net)", "payAll": "Pagar tudo", "splitIn": "Split em", "payPart": "Pagar 1 parte", "targetTable": "— mesa destino —", "transfer": "Transferir", "settled": "Mesa quitada", "paidPartial": "Pago {{paid}} — resta {{remaining}}", "openFailed": "Não deu pra abrir — outro operador pode ter pego essa mesa. Tente de novo." }
+    "tables": { "title": "Salão (Tische)", "hint": "Clique abre a conta · arraste reposiciona a mesa", "tab": "Conta", "remaining": "(resta {{value}})", "variant": "Variante", "line": "Linha: {{value}} (net)", "payAll": "Pagar tudo", "splitIn": "Split em", "payPart": "Pagar 1 parte", "targetTable": "— mesa destino —", "transfer": "Transferir", "settled": "Mesa quitada", "paidPartial": "Pago {{paid}} — resta {{remaining}}", "openFailed": "Não deu pra abrir — outro operador pode ter pego essa mesa. Tente de novo.", "voidItem": "Remover item", "confirmVoid": "Remover \"{{name}}\" da conta?", "selectToPay": "Selecionar pra pagar", "paySelected": "Pagar selecionados ({{count}})" }
   },
   "backoffice": {
     "sales": { "loadMore": "Carregar mais", "date": "Data" },

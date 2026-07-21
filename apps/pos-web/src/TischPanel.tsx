@@ -7,12 +7,13 @@ import {
   openTable,
   payTable,
   transferTable,
+  addBestellung,
   imageUrlFor,
   type TableRow,
   type SessionView,
   type ApiProduct,
 } from './api'
-import { CategoryIcon } from './icons'
+import { CategoryIcon, IconTrash } from './icons'
 import { tableState } from './tischplan-util'
 
 const euro = (c: number): string =>
@@ -65,6 +66,10 @@ export function TischPanel({
   // Pagamento/transferência
   const [parts, setParts] = useState('2')
   const [transferTo, setTransferTo] = useState('')
+  // Seleção de itens (pagar só o que foi escolhido) — chave `productId|mwstCode`
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Remover item exige 2 toques (sem window.confirm — trava tela touch/kiosk)
+  const [voidArmed, setVoidArmed] = useState<string | null>(null)
 
   const refresh = (): void => {
     void listTables(token, kasse).then(setTables).catch(() => setTables([]))
@@ -78,6 +83,8 @@ export function TischPanel({
   }, [token, kasse])
 
   async function open(tbl: TableRow): Promise<void> {
+    setSelected(new Set())
+    setVoidArmed(null)
     try {
       const id = tbl.openSessionId ?? (await openTable(token, tbl.id, kasse)).id
       setSession(await getSession(token, id))
@@ -126,6 +133,94 @@ export function TischPanel({
     void payAmount(Math.ceil(remainingGross() / n))
   }
 
+  const lineKey = (l: { productId: string; mwstCode: string }): string => `${l.productId}|${l.mwstCode}`
+  const lineGross = (l: { net: number; mwstRate: number }): number => l.net + Math.round(l.net * l.mwstRate)
+
+  function toggleSelect(key: string): void {
+    setSelected((s) => {
+      const next = new Set(s)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  /** Paga só as linhas marcadas (ex.: cada cliente paga o que pediu). */
+  async function paySelected(): Promise<void> {
+    if (!session || selected.size === 0) return
+    const lines = session.tab.lines.filter((l) => l.qty > 0 && selected.has(lineKey(l)))
+    if (lines.length === 0) return
+    const gross = lines.reduce((s, l) => s + lineGross(l), 0)
+    const byRate = new Map<number, number>()
+    for (const l of lines) byRate.set(l.mwstRate, (byRate.get(l.mwstRate) ?? 0) + lineGross(l))
+    const outcome = await signWithFallback(tse, {
+      clientId: 'c1',
+      processType: 'Kassenbeleg-V1',
+      amountsByVatRate: Array.from(byRate, ([rate, g]) => ({ rate, gross: g })),
+      paymentType: 'Bar',
+      grossTotal: gross,
+    })
+    const tse_transaction = outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
+    const r = await payTable(token, session.id, {
+      client_event_id: crypto.randomUUID(),
+      items: lines.map((l) => ({ product_id: l.productId, mwst_code: l.mwstCode, qty: l.qty })),
+      payment: { method: 'cash', amount: gross },
+      tse: tse_transaction,
+    })
+    setSelected(new Set())
+    if (r.settled) {
+      setMsg(t('pos.tables.settled'))
+      setSession(null)
+      refresh()
+    } else {
+      setMsg(t('pos.tables.paidPartial', { paid: euro(gross), remaining: euro(r.remainingGross) }))
+      setSession(await getSession(token, session.id))
+    }
+  }
+
+  /** Toque num item ainda não armado só arma a confirmação (troca o ícone); um
+   * segundo toque no mesmo item de fato remove. Evita `window.confirm` — trava
+   * a tela inteira num kiosk touch e não passa pelo mesmo caminho de teclado. */
+  function requestVoid(key: string, line: SessionView['tab']['lines'][number]): void {
+    if (voidArmed === key) {
+      setVoidArmed(null)
+      void voidLine(line)
+    } else {
+      setVoidArmed(key)
+    }
+  }
+
+  /** Remove um item já lançado — lança uma Bestellung de correção (qty negativa,
+   * mesmo preço unitário), assinada na TSE como qualquer outro lançamento, em vez
+   * de apagar o registro (a Bestellung é append-only / imutável para fins fiscais). */
+  async function voidLine(line: SessionView['tab']['lines'][number]): Promise<void> {
+    if (!session) return
+    const gross = -lineGross(line)
+    const outcome = await signWithFallback(tse, {
+      clientId: 'c1',
+      processType: 'Bestellung-V1',
+      amountsByVatRate: [{ rate: line.mwstRate, gross }],
+      paymentType: 'Bar',
+      grossTotal: gross,
+    })
+    const tse_transaction = outcome.kind === 'signed' ? tseFields(outcome.tse) : { is_ausfall: true }
+    await addBestellung(token, session.id, {
+      client_event_id: crypto.randomUUID(),
+      type: 'bestellung',
+      session_id: session.id,
+      kasse_id: kasse,
+      items: [{ product_id: line.productId, qty: -line.qty, unit_net: Math.round(line.net / line.qty), mwst_rate: line.mwstRate, mwst_code: line.mwstCode }],
+      tse_transaction,
+    })
+    setSelected((s) => {
+      const next = new Set(s)
+      next.delete(lineKey(line))
+      return next
+    })
+    setSession(await getSession(token, session.id))
+    refresh()
+  }
+
   async function doTransfer(): Promise<void> {
     if (!session || !transferTo) return
     await transferTable(token, session.id, transferTo)
@@ -154,15 +249,22 @@ export function TischPanel({
               <h3>{t('pos.tables.tab')} — {tables.find((tb) => tb.id === session.tischId)?.name ?? session.tischId}</h3>
             </div>
             <div className="cart-lines">
-              {session.tab.lines.length === 0 ? (
+              {session.tab.lines.filter((l) => l.qty > 0).length === 0 ? (
                 <p className="muted">{t('pos.cart.empty')}</p>
               ) : (
-                session.tab.lines.map((line) => {
+                session.tab.lines.filter((l) => l.qty > 0).map((line) => {
                   const product = productById.get(line.productId)
-                  const lineGross = line.net + Math.round(line.net * line.mwstRate)
+                  const key = lineKey(line)
                   return (
-                    <div key={`${line.productId}-${line.mwstCode}`} className="cart-line">
+                    <div key={key} className="cart-line">
                       <div className="cart-line-main">
+                        <input
+                          type="checkbox"
+                          className="cart-line-check"
+                          checked={selected.has(key)}
+                          onChange={() => toggleSelect(key)}
+                          title={t('pos.tables.selectToPay')}
+                        />
                         <div className="cart-line-thumb">
                           {product?.imageUrl ? (
                             <img src={imageUrlFor(product.imageUrl)!} alt="" />
@@ -174,7 +276,16 @@ export function TischPanel({
                           <span>{product?.name ?? line.productId}</span>
                           <span className="cart-line-note">×{line.qty}</span>
                         </div>
-                        <strong>{euro(lineGross)}</strong>
+                        <strong>{euro(lineGross(line))}</strong>
+                        <button
+                          type="button"
+                          className={voidArmed === key ? 'cart-line-remove armed' : 'cart-line-remove'}
+                          onClick={() => requestVoid(key, line)}
+                          onBlur={() => setVoidArmed((k) => (k === key ? null : k))}
+                          title={voidArmed === key ? t('pos.tables.confirmVoid', { name: product?.name ?? line.productId }) : t('pos.tables.voidItem')}
+                        >
+                          <IconTrash className="icon" />
+                        </button>
                       </div>
                     </div>
                   )
@@ -201,6 +312,11 @@ export function TischPanel({
               <button className="btn-primary" onClick={() => void payAmount()} disabled={remainingGross() <= 0}>
                 {t('pos.tables.payAll')}
               </button>
+              {selected.size > 0 && (
+                <button className="btn-secondary" onClick={() => void paySelected()}>
+                  {t('pos.tables.paySelected', { count: selected.size })}
+                </button>
+              )}
             </div>
             <div className="actions-row" style={{ marginTop: 4 }}>
               <label>

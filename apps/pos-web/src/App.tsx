@@ -260,18 +260,6 @@ export function App() {
             <img src="/skyview-logo.png" alt="Skyview" />
             <span className="pos-sidebar-tagline">{t('pos.menu.tagline')}</span>
           </div>
-          <div className="pos-sidebar-lang">
-            {SUPPORTED_LOCALES.map((l) => (
-              <button
-                key={l}
-                type="button"
-                className={i18n.language === l ? 'lang-btn active' : 'lang-btn'}
-                onClick={() => void i18n.changeLanguage(l)}
-              >
-                {LANG_LABEL[l]}
-              </button>
-            ))}
-          </div>
           <nav className="pos-categories">
             {categories.map((c) => (
               <button
@@ -351,6 +339,18 @@ export function App() {
                 )}
               </div>
               <button className="btn-primary" onClick={cancelCart}>+ {t('pos.menu.newOrder')}</button>
+              <div className="topbar-lang">
+                {SUPPORTED_LOCALES.map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    className={i18n.language === l ? 'lang-btn active' : 'lang-btn'}
+                    onClick={() => void i18n.changeLanguage(l)}
+                  >
+                    {LANG_LABEL[l]}
+                  </button>
+                ))}
+              </div>
             </div>
           </header>
 

@@ -189,7 +189,13 @@ export class TablesService {
    */
   async pay(
     sessionId: string,
-    body: { client_event_id: string; amount?: number; payment: { method: 'cash'; amount: number; ref?: string }; tse: Record<string, unknown> },
+    body: {
+      client_event_id: string
+      amount?: number
+      items?: { product_id: string; mwst_code: string; qty: number }[]
+      payment: { method: 'cash'; amount: number; ref?: string }
+      tse: Record<string, unknown>
+    },
     actor: Actor,
   ): Promise<{ orderId: string; settled: boolean; remainingGross: number; duplicate: boolean }> {
     const session = await this.prisma.tischsession.findUnique({
@@ -213,20 +219,45 @@ export class TablesService {
     const remainingGross = fullTab.totalGross - paidGross
     if (remainingGross <= 0) throw new ConflictException('session already settled')
 
-    const amount = body.amount ?? remainingGross
-    if (amount <= 0 || amount > remainingGross) throw new BadRequestException('invalid amount')
-
     let eventItems: { product_id: string; qty: number; unit_net: number; mwst_rate: number; mwst_code: string }[]
     let totals: { net: number; mwst: number; gross: number }
-    if (amount === remainingGross && session.orders.length === 0) {
-      // Pagamento integral sem parciais anteriores → Beleg itemizado real (1a-1).
-      const lines = fullTab.lines.filter((l) => l.qty !== 0)
-      eventItems = lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: Math.round(l.net / l.qty), mwst_rate: l.mwstRate, mwst_code: l.mwstCode }))
-      totals = { net: fullTab.totalNet, mwst: fullTab.totalMwst, gross: fullTab.totalGross }
+
+    if (body.items && body.items.length > 0) {
+      // Pagamento por itens selecionados: cobra exatamente as linhas escolhidas
+      // (ex.: dividir a conta por quem pediu o quê), em vez de ratear por alíquota.
+      // Nota: não reconcilia com pagamentos parciais feitos por rateio (Split em N)
+      // sobre o mesmo produto — ok para o fluxo normal (um modo por conta), mas
+      // combinar os dois modos na mesma sessão pode permitir selecionar qty já coberta
+      // por um split anterior; o guard de remainingGross ainda impede sobre-pagamento total.
+      const paidItems: TabItemInput[] = session.orders.flatMap((o) =>
+        o.items.map((i) => ({ productId: i.productId, qty: i.qty, unitNet: i.unitNet, mwstRate: Number(i.mwstRate), mwstCode: i.mwstCode })),
+      )
+      const paidTab = aggregateTab(paidItems)
+      eventItems = body.items.map((sel) => {
+        const line = fullTab.lines.find((l) => l.productId === sel.product_id && l.mwstCode === sel.mwst_code)
+        if (!line || line.qty <= 0) throw new BadRequestException(`unknown line: ${sel.product_id}/${sel.mwst_code}`)
+        const paidLine = paidTab.lines.find((l) => l.productId === sel.product_id && l.mwstCode === sel.mwst_code)
+        const available = line.qty - (paidLine?.qty ?? 0)
+        if (sel.qty <= 0 || sel.qty > available) throw new BadRequestException(`invalid qty for ${sel.product_id}: requested ${sel.qty}, available ${available}`)
+        return { product_id: sel.product_id, qty: sel.qty, unit_net: Math.round(line.net / line.qty), mwst_rate: line.mwstRate, mwst_code: line.mwstCode }
+      })
+      const net = eventItems.reduce((s, i) => s + i.unit_net * i.qty, 0)
+      const mwst = eventItems.reduce((s, i) => s + Math.round(i.unit_net * i.qty * i.mwst_rate), 0)
+      totals = { net, mwst, gross: net + mwst }
+      if (totals.gross <= 0 || totals.gross > remainingGross) throw new BadRequestException('invalid amount')
     } else {
-      const split = apportionSplit(fullTab, paid.map((p) => ({ rate: p.rate, net: p.net })), amount)
-      eventItems = split.lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: l.unitNet, mwst_rate: l.mwstRate, mwst_code: l.mwstCode }))
-      totals = { net: split.totalNet, mwst: split.totalMwst, gross: split.totalGross }
+      const amount = body.amount ?? remainingGross
+      if (amount <= 0 || amount > remainingGross) throw new BadRequestException('invalid amount')
+      if (amount === remainingGross && session.orders.length === 0) {
+        // Pagamento integral sem parciais anteriores → Beleg itemizado real (1a-1).
+        const lines = fullTab.lines.filter((l) => l.qty !== 0)
+        eventItems = lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: Math.round(l.net / l.qty), mwst_rate: l.mwstRate, mwst_code: l.mwstCode }))
+        totals = { net: fullTab.totalNet, mwst: fullTab.totalMwst, gross: fullTab.totalGross }
+      } else {
+        const split = apportionSplit(fullTab, paid.map((p) => ({ rate: p.rate, net: p.net })), amount)
+        eventItems = split.lines.map((l) => ({ product_id: l.productId, qty: l.qty, unit_net: l.unitNet, mwst_rate: l.mwstRate, mwst_code: l.mwstCode }))
+        totals = { net: split.totalNet, mwst: split.totalMwst, gross: split.totalGross }
+      }
     }
 
     const saleEvent: SaleEvent = {

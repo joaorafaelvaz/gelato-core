@@ -89,6 +89,7 @@ const NarrateDto = z.object({
 const PayDto = z.object({
   client_event_id: z.string().uuid(),
   amount: z.number().int().positive().optional(),
+  items: z.array(z.object({ product_id: z.string(), mwst_code: z.string(), qty: z.number().int().positive() })).optional(),
   payment: z.object({ method: z.literal('cash'), amount: z.number().int(), ref: z.string().optional() }),
   tse: z.record(z.unknown()),
 })

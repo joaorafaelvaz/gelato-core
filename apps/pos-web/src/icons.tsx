@@ -226,10 +226,37 @@ function IconPlate({ className }: IconProps) {
   )
 }
 
+function IconCake({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 12h16v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7Z" />
+      <path d="M4 12a3 3 0 0 1 3-3 3 3 0 0 1 3 3M10 12a3 3 0 0 1 3-3 3 3 0 0 1 3 3M16 12a3 3 0 0 1 3-3 3 3 0 0 1 1 .2" />
+      <path d="M12 9V5M12 5c-.9 0-1.4-.6-1.4-1.2S11.1 2.6 12 2c.9.6 1.4 1.2 1.4 1.8S12.9 5 12 5Z" />
+    </svg>
+  )
+}
+
+function IconPretzel({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 5c-2 1.4-2.2 4 .5 4.3C9.5 9.6 9 5 12 5s2.5 4.6 5.5 4.3C20.2 9 20 6.4 18 5" />
+      <path d="M6.5 9.2 5 19M17.5 9.2 19 19" />
+      <path d="M9.3 13.5h5.4" />
+    </svg>
+  )
+}
+
 const CATEGORY_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   'Eis': IconIceCream,
-  'Para Viagem': IconBag,
+  'Eis im Becher': IconSundae,
+  'Warme Getränke': IconCoffee,
+  'Kalte Getränke': IconCupStraw,
+  'Waffeln und Crêpe': IconWaffle,
+  'Kuchen und Torte': IconCake,
+  'Snacks': IconPretzel,
   'Extras': IconPlusCircle,
+  // nomes antigos — mantidos como fallback caso ainda existam em algum tenant não migrado
+  'Para Viagem': IconBag,
   'Refrigerantes': IconBottle,
   'Bebidas Especiais': IconCupStraw,
   'Café': IconCoffee,
