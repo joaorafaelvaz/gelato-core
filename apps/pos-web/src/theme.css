@@ -27,7 +27,7 @@ h3 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
 .pos-app { display: flex; min-height: 100vh; align-items: stretch; }
 .pos-sidebar { flex: none; width: 240px; background: var(--header); color: #fff; display: flex; flex-direction: column; padding: 20px 14px; gap: 4px; }
 .pos-sidebar-logo { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 0 8px 20px; }
-.pos-sidebar-logo img { height: 40px; width: auto; }
+.pos-sidebar-logo img { height: 80px; width: auto; }
 .pos-sidebar-tagline { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: var(--accent-bright); text-transform: uppercase; }
 .topbar-lang { display: flex; gap: 4px; }
 .lang-btn { min-height: 32px; padding: 0 11px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); }
