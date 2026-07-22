@@ -170,6 +170,7 @@ model Product {
   mwstCodeImHaus     String
   mwstCodeAusserHaus String
   active             Boolean  @default(true)
+  featured           Boolean  @default(false) // aparece na aba "Favoritos" do caixa, além da categoria normal
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

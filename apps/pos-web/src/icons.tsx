@@ -113,6 +113,87 @@ export function IconUser({ className }: IconProps) {
   )
 }
 
+export function IconWifi({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3 8.5a14 14 0 0 1 18 0" />
+      <path d="M6.2 12.3a9.4 9.4 0 0 1 11.6 0" />
+      <path d="M9.4 16a4.8 4.8 0 0 1 5.2 0" />
+      <circle cx="12" cy="19.2" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function IconSun({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7" />
+    </svg>
+  )
+}
+
+export function IconMoon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" />
+    </svg>
+  )
+}
+
+export function IconStar({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7Z" />
+    </svg>
+  )
+}
+
+export function IconPrinter({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 8.5V3h12v5.5" />
+      <rect x="4" y="8.5" width="16" height="8" rx="1.5" />
+      <path d="M6 15.5h12V21H6Z" />
+    </svg>
+  )
+}
+
+export function IconChevronDown({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
+export function IconDrawer({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="3.5" y="4" width="17" height="16" rx="1.5" />
+      <path d="M3.5 12h17M10.5 16h3" />
+    </svg>
+  )
+}
+
+export function IconPercent({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M19 5 5 19" />
+      <circle cx="7" cy="7" r="2.4" />
+      <circle cx="17" cy="17" r="2.4" />
+    </svg>
+  )
+}
+
+export function IconMessage({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 5.5h16v10H9l-4 3.5v-3.5H4Z" />
+    </svg>
+  )
+}
+
 // ── Ícones de categoria (gelateria) ──
 
 function IconIceCream({ className }: IconProps) {
@@ -271,6 +352,6 @@ const CATEGORY_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
 }
 
 export function CategoryIcon({ name, className }: { name?: string | null; className?: string }) {
-  const Icon = (name && CATEGORY_ICONS[name]) ?? IconPlate
+  const Icon = (name ? CATEGORY_ICONS[name] : undefined) ?? IconPlate
   return <Icon className={className} />
 }

@@ -17,6 +17,7 @@ export interface ApiProduct {
   mwstCodeAusserHaus: string
   categoryId?: string | null
   imageUrl?: string | null
+  featured?: boolean
   variants?: ApiVariant[]
   modifiers?: ApiVariant[]
 }
