@@ -375,27 +375,32 @@ export function App() {
           </div>
         </div>
 
-        <nav className="category-pills">
-          <button
-            className={!search.trim() && activeCategory === FAVORITOS_ID ? 'cat-pill active' : 'cat-pill'}
-            onClick={() => { setSearch(''); setActiveCategory(FAVORITOS_ID) }}
-          >
-            <IconStar className="icon" /> {t('pos.menu.favorites')}
-          </button>
-          {categories.map((c) => (
+        <div className="pos-body">
+        <aside className="pos-category-sidebar">
+          <nav className="cat-nav">
             <button
-              key={c.id}
-              className={!search.trim() && activeCategory === c.id ? 'cat-pill active' : 'cat-pill'}
-              onClick={() => { setSearch(''); setActiveCategory(c.id) }}
+              className={!search.trim() && activeCategory === FAVORITOS_ID ? 'cat-btn active' : 'cat-btn'}
+              onClick={() => { setSearch(''); setActiveCategory(FAVORITOS_ID) }}
             >
-              <CategoryIcon name={c.name} className="icon" /> {c.name}
+              <span className="cat-icon"><IconStar className="icon" /></span>
+              <span className="cat-label">{t('pos.menu.favorites')}</span>
             </button>
-          ))}
-          <div className="pos-view-toggle">
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                className={!search.trim() && activeCategory === c.id ? 'cat-btn active' : 'cat-btn'}
+                onClick={() => { setSearch(''); setActiveCategory(c.id) }}
+              >
+                <span className="cat-icon"><CategoryIcon name={c.name} className="icon" /></span>
+                <span className="cat-label">{c.name}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="pos-view-toggle pos-view-toggle-sidebar">
             <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => setViewMode('grid')} title="Grid"><IconGrid className="icon" /></button>
             <button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="Liste"><IconList className="icon" /></button>
           </div>
-        </nav>
+        </aside>
 
         <div className="pos-shop">
           <main className="pos-products">
@@ -500,6 +505,7 @@ export function App() {
               <span>{euro(cartTotalWithDiscount)}</span>
             </button>
           </aside>
+        </div>
         </div>
 
         <div className="pos-bottom-bar">
