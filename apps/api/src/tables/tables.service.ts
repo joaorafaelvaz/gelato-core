@@ -67,7 +67,7 @@ export class TablesService {
     try {
       const kasse = await this.prisma.kasse.findUnique({ where: { id: kasseId }, select: { betriebsstaette: { select: { tenantId: true } } } })
       if (!kasse) return
-      await this.prisma.integrationEvent.create({ data: { tenantId: kasse.betriebsstaette.tenantId, kasseId, type, payload } })
+      await this.prisma.integrationEvent.create({ data: { tenantId: kasse.betriebsstaette.tenantId, kasseId, type, payload: payload as Prisma.InputJsonValue } })
     } catch {
       // best-effort — evento de narrativa não pode quebrar o fluxo real da venda
     }
