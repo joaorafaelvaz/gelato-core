@@ -12,6 +12,7 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed-run.ts",
+    "seed:usuarios": "tsx prisma/seed-usuarios.ts",
     "issue:integration-token": "tsx scripts/issue-integration-token.mts",
     "simulate": "tsx scripts/simulate-restaurant.ts",
     "test": "vitest run",
